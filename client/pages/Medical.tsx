@@ -1120,7 +1120,7 @@ function MentalWellnessTab() {
     suggestions: string[];
   }>(null);
 
-  const [showGeminiTest, setShowGeminiTest] = useState(false);
+  const [showGeminiTest, setShowGeminiTest] = useState(true);
 
   const handleAnswer = (value: number) => {
     setAnswers({ ...answers, [mentalHealthQuestions[currentQuestion].id]: value });
@@ -1225,14 +1225,6 @@ function MentalWellnessTab() {
   if (showGeminiTest) {
     return (
       <div className="space-y-6 max-w-3xl mx-auto">
-        <Button 
-          variant="ghost" 
-          onClick={() => setShowGeminiTest(false)}
-          className="mb-4"
-        >
-          ← Back to Assessment
-        </Button>
-
         <Card className="p-8 border-0 shadow-xl bg-gradient-to-br from-blue-50 to-purple-50">
           <div className="text-center mb-8">
             <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center mb-4">
@@ -1317,22 +1309,6 @@ function MentalWellnessTab() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      {/* Gemini AI Banner */}
-      <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => setShowGeminiTest(true)}
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
-            <Brain className="w-6 h-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-blue-800">Try AI-Powered Test</h3>
-            <p className="text-sm text-blue-600">Enhanced with Google Gemini AI for deeper insights</p>
-          </div>
-          <ChevronRight className="w-5 h-5 text-blue-500" />
-        </div>
-      </Card>
-
       <Card className="p-8">
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
@@ -1630,6 +1606,3 @@ export default function Medical() {
     </>
   );
 }
-
-
-
