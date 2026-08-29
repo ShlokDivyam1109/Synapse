@@ -9,6 +9,7 @@ import authRoutes from "./routes/auth";
 import instituteRoutes from "./routes/institutes";
 import noticesRoutes from "./routes/notices";
 import { requireAuth } from "./middleware/requireAuth";
+import academicEventsRoutes from "./routes/academicEvents";
 
 export function createServer() {
   const app = express();
@@ -56,6 +57,6 @@ export function createServer() {
 
   // Authenticated
   app.use("/api/notices", requireAuth, noticesRoutes);
-
+  app.use("/api/academic-events", requireAuth, academicEventsRoutes);
   return app;
 }
