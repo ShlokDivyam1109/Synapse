@@ -1,0 +1,989 @@
+diff --git a/client/pages/Medical.tsx b/client/pages/Medical.tsx
+index 56a4fae..9479d52 100644
+--- a/client/pages/Medical.tsx
++++ b/client/pages/Medical.tsx
+@@ -30,6 +30,7 @@ import {
+   ChevronRight,
+ } from "lucide-react";
+ import { useState, useEffect } from "react";
++import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+ 
+ const IIT_BHILAI_ORIGIN =
+   "Indian Institute of Technology Bhilai, IIT Bhilai, 6th Lane Road, Jevra, Chhattisgarh 491002";
+@@ -93,256 +94,93 @@ async function evaluateMentalHealth(
+ 
+ 
+ 
+-// ============ DATA ============
+-
+-const doctorsData = [
+-  {
+-    id: 1,
+-    name: "Dr. Atul Prakash Srivastava",
+-    specialization: "General & Emergency Physician",
+-    availableDays: "Mon–Fri",
+-    timings: "09:30 AM–06:00 PM",
+-    availability: [
+-      { day: "Monday", weeks: [1,2,3,4,5], start: "09:30", end: "18:00" },
+-      { day: "Tuesday", weeks: [1,2,3,4,5], start: "09:30", end: "18:00" },
+-      { day: "Wednesday", weeks: [1,2,3,4,5], start: "09:30", end: "18:00" },
+-      { day: "Thursday", weeks: [1,2,3,4,5], start: "09:30", end: "18:00" },
+-      { day: "Friday", weeks: [1,2,3,4,5], start: "09:30", end: "18:00" },
+-    ],
+-  },
+-
+-  {
+-    id: 2,
+-    name: "Dr. Ankur Parganiha",
+-    specialization: "Paediatric",
+-    availableDays: "1st & 3rd Fri",
+-    timings: "02:00 PM–04:00 PM",
+-    availability: [
+-      { day: "Friday", weeks: [1,3], start: "14:00", end: "16:00" },
+-    ],
+-  },
+-
+-  {
+-    id: 3,
+-    name: "Dr. Anuj Gupta",
+-    specialization: "ENT",
+-    availableDays: "2nd & 4th Fri",
+-    timings: "03:00 PM–05:00 PM",
+-    availability: [
+-      { day: "Friday", weeks: [2,4], start: "15:00", end: "17:00" },
+-    ],
+-  },
+-
+-  {
+-    id: 4,
+-    name: "Dr. Vishal Agrawal",
+-    specialization: "General Medicine",
+-    availableDays: "2nd & 4th Tue",
+-    timings: "04:00 PM–06:00 PM",
+-    availability: [
+-      { day: "Tuesday", weeks: [2,4], start: "16:00", end: "18:00" },
+-    ],
+-  },
+-
+-  {
+-    id: 5,
+-    name: "Dr. Rahul Thakur",
+-    specialization: "Orthopaedic",
+-    availableDays: "1st & 3rd Wed",
+-    timings: "04:00 PM–06:00 PM",
+-    availability: [
+-      { day: "Wednesday", weeks: [1,3], start: "16:00", end: "18:00" },
+-    ],
+-  },
+-
+-  {
+-    id: 6,
+-    name: "Dr. Saket Banchhore",
+-    specialization: "Dentist",
+-    availableDays: "2nd & 4th Wed",
+-    timings: "02:00 PM–04:00 PM",
+-    availability: [
+-      { day: "Wednesday", weeks: [2,4], start: "14:00", end: "16:00" },
+-    ],
+-  },
+-
+-  {
+-    id: 7,
+-    name: "Dr. Alloukik Agrawal",
+-    specialization: "Psychiatry",
+-    availableDays: "1st & 3rd Thu",
+-    timings: "12:00 PM–02:00 PM",
+-    availability: [
+-      { day: "Thursday", weeks: [1,3], start: "12:00", end: "14:00" },
+-    ],
+-  },
+-
+-  {
+-    id: 8,
+-    name: "Dr. Bhuvaneshwari Dewangan",
+-    specialization: "Dermatology",
+-    availableDays: "2nd & 4th Thu",
+-    timings: "01:30 PM–03:30 PM",
+-    availability: [
+-      { day: "Thursday", weeks: [2,4], start: "13:30", end: "15:30" },
+-    ],
+-  },
+-
+-  {
+-    id: 9,
+-    name: "Dr. Monideepa Saha",
+-    specialization: "Obs & Gynae",
+-    availableDays: "All Tuesdays",
+-    timings: "03:30 PM–05:30 PM",
+-    availability: [
+-      { day: "Tuesday", weeks: [1,2,3,4,5], start: "15:30", end: "17:30" },
+-    ],
+-  },
+-
+-  {
+-    id: 10,
+-    name: "Dr. Suyas Noel",
+-    specialization: "Ophthalmologist",
+-    availableDays: "2nd Saturday",
+-    timings: "10:00 AM–12:00 PM",
+-    availability: [
+-      { day: "Saturday", weeks: [2], start: "10:00", end: "12:00" },
+-    ],
+-  },
+-
+-  {
+-    id: 11,
+-    name: "Dr. Anushree",
+-    specialization: "Physiotherapy",
+-    availableDays: "Mon–Sat",
+-    timings: "09:00 AM–03:00 PM",
+-    availability: [
+-      { day: "Monday", weeks: [1,2,3,4,5], start: "09:00", end: "15:00" },
+-      { day: "Tuesday", weeks: [1,2,3,4,5], start: "09:00", end: "15:00" },
+-      { day: "Wednesday", weeks: [1,2,3,4,5], start: "09:00", end: "15:00" },
+-      { day: "Thursday", weeks: [1,2,3,4,5], start: "09:00", end: "15:00" },
+-      { day: "Friday", weeks: [1,2,3,4,5], start: "09:00", end: "15:00" },
+-      { day: "Saturday", weeks: [1,2,3,4,5], start: "09:00", end: "15:00" },
+-    ],
+-  },
++// ============ API TYPES & FETCHERS ============
+ 
+-  {
+-    id: 12,
+-    name: "Dr. Pavendra Chandrakar",
+-    specialization: "Yoga",
+-    availableDays: "Mon–Sat",
+-    timings: "06:00 AM–08:00 AM & 05:00 PM–07:00 PM",
+-    availability: [
+-      { day: "Monday", weeks: [1,2,3,4,5], start: "06:00", end: "08:00" },
+-      { day: "Monday", weeks: [1,2,3,4,5], start: "17:00", end: "19:00" },
++interface HealthCentreData {
++  name: string;
++  tagline: string;
++  address: string;
++  mapsDestination: string;
++  timings: string;
++  emergencyContacts: { title: string; number: string }[];
++}
+ 
+-      { day: "Tuesday", weeks: [1,2,3,4,5], start: "06:00", end: "08:00" },
+-      { day: "Tuesday", weeks: [1,2,3,4,5], start: "17:00", end: "19:00" },
++interface DoctorData {
++  _id: string;
++  name: string;
++  specialization: string;
++  availableDays: string;
++  timings: string;
++  availability: { day: string; weeks: number[]; start: string; end: string }[];
++}
+ 
+-      { day: "Wednesday", weeks: [1,2,3,4,5], start: "06:00", end: "08:00" },
+-      { day: "Wednesday", weeks: [1,2,3,4,5], start: "17:00", end: "19:00" },
++interface HospitalData {
++  _id: string;
++  name: string;
++  distance: number;
++  travelTime: string;
++  specialization: string;
++  helpline: string;
++  availability: string;
++  address: string;
++}
+ 
+-      { day: "Thursday", weeks: [1,2,3,4,5], start: "06:00", end: "08:00" },
+-      { day: "Thursday", weeks: [1,2,3,4,5], start: "17:00", end: "19:00" },
++interface MedicalStoreData {
++  _id: string;
++  name: string;
++  distance: number;
++  travelTime: string;
++  phone: string;
++  timings: string;
++  address: string;
++}
+ 
+-      { day: "Friday", weeks: [1,2,3,4,5], start: "06:00", end: "08:00" },
+-      { day: "Friday", weeks: [1,2,3,4,5], start: "17:00", end: "19:00" },
++interface AppointmentData {
++  _id: string;
++  doctorId: string;
++  doctorName: string;
++  date: string;
++  time: string;
++  status: "confirmed" | "cancelled";
++}
+ 
+-      { day: "Saturday", weeks: [1,2,3,4,5], start: "06:00", end: "08:00" },
+-      { day: "Saturday", weeks: [1,2,3,4,5], start: "17:00", end: "19:00" },
+-    ],
+-  },
+-];
++async function fetchHealthCentre(): Promise<HealthCentreData | null> {
++  const res = await fetch("/api/health-centre", { credentials: "include" });
++  if (res.status === 404) return null;
++  if (!res.ok) throw new Error("Failed to load health centre info");
++  const data = await res.json();
++  return data.healthCentre;
++}
+ 
++async function fetchDoctors(): Promise<DoctorData[]> {
++  const res = await fetch("/api/doctors", { credentials: "include" });
++  if (!res.ok) throw new Error("Failed to load doctors");
++  const data = await res.json();
++  return data.doctors;
++}
+ 
++async function fetchHospitals(): Promise<HospitalData[]> {
++  const res = await fetch("/api/hospitals", { credentials: "include" });
++  if (!res.ok) throw new Error("Failed to load hospitals");
++  const data = await res.json();
++  return data.hospitals;
++}
+ 
+-const emergencyContacts = [
+-  { title: "Health Centre Telephone", number: "07882991612", icon: Phone },
+-  { title: "Health Centre Helpline", number: "09424283691", icon: Phone },
+-  { title: "Ambulance", number: "07647068419", icon: AlertCircle },
+-];
++async function fetchMedicalStores(): Promise<MedicalStoreData[]> {
++  const res = await fetch("/api/medical-stores", { credentials: "include" });
++  if (!res.ok) throw new Error("Failed to load medical stores");
++  const data = await res.json();
++  return data.medicalStores;
++}
+ 
+-const hospitalsData = [
+-  { 
+-    id: 1, 
+-    name: "HI-TEK Superspeciality Hospital, Bhilai", 
+-    distance: 4.6, 
+-    travelTime: "19 min", 
+-    specialization: "Multi-specialty, Emergency", 
+-    helpline: "0788-2233445", 
+-    availability: "24x7",
+-    address: "Bhilai, Chhattisgarh"
+-  },
+-  { 
+-    id: 2, 
+-    name: "Sparsh MultiSpecialty Hospital", 
+-    distance: 6.4, 
+-    travelTime: "18 min", 
+-    specialization: "Multi-specialty, Critical Care", 
+-    helpline: "0788-2233556", 
+-    availability: "24x7",
+-    address: "Ram Nagar Supela, Bhilai"
+-  },
+-  { 
+-    id: 3, 
+-    name: "Dr. B. R. Ambedkar Memorial Hospital", 
+-    distance: 39.2, 
+-    travelTime: "1 hr 28 min", 
+-    specialization: "Government, Multi-specialty", 
+-    helpline: "0771-2445300", 
+-    availability: "24x7",
+-    address: "Pandri, Raipur"
+-  },
+-  { 
+-    id: 4, 
+-    name: "Narayana Multispeciality Hospital", 
+-    distance: 45.6, 
+-    travelTime: "1 hr 17 min", 
+-    specialization: "Cardiology, Neurology", 
+-    helpline: "0771-3988888", 
+-    availability: "24x7",
+-    address: "Shankar Nagar, Raipur"
+-  },
+-];
++async function fetchAppointments(): Promise<AppointmentData[]> {
++  const res = await fetch("/api/appointments", { credentials: "include" });
++  if (!res.ok) throw new Error("Failed to load appointments");
++  const data = await res.json();
++  return data.appointments;
++}
+ 
+-const medicalStoresData = [
+-  { 
+-    id: 1, 
+-    name: "Jan Aushadhi Store", 
+-    distance: 4.6, 
+-    travelTime: "15 min", 
+-    phone: "078229-00777", 
+-    timings: "08:00 AM–08:00 PM",
+-    address: "Vivekanand Nagar, Bhilai"
+-  },
+-  { 
+-    id: 2, 
+-    name: "C.G. Medical Stores", 
+-    distance: 4.6, 
+-    travelTime: "13 min", 
+-    phone: "09876543211", 
+-    timings: "08:00 AM–10:00 PM",
+-    address: "Smriti Nagar, Bhilai, Durg"
+-  },
+-  { 
+-    id: 3, 
+-    name: "Mahadev Medical Store", 
+-    distance: 5.0, 
+-    travelTime: "14 min", 
+-    phone: "09876543212", 
+-    timings: "08:00 AM–10:00 PM",
+-    address: "Shanti Nagar, Smriti Nagar, Durg"
+-  },
+-  { 
+-    id: 4, 
+-    name: "Laxmi Medical Hall", 
+-    distance: 6.5, 
+-    travelTime: "17 min", 
+-    phone: "09876543213", 
+-    timings: "08:00 AM–10:00 PM",
+-    address: "Supela, Bhilai, Chhattisgarh "
+-  },
+-];
++// ============ DATA ============
+ 
+ const getWeekOfMonth = (date: Date) => {
+   return Math.ceil(date.getDate() / 7);
+@@ -476,14 +314,39 @@ const mentalHealthQuestions = [
+ 
+ // Tab 1: Overview
+ function OverviewTab({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
++  const { data: centre, isLoading, error } = useQuery({
++    queryKey: ["health-centre"],
++    queryFn: fetchHealthCentre,
++  });
++
++  if (isLoading) {
++    return <div className="text-center py-12 text-muted-foreground">Loading health centre info...</div>;
++  }
++
++  if (error) {
++    return <div className="text-center py-12 text-red-600">Couldn't load health centre info.</div>;
++  }
++
++  if (!centre) {
++    return (
++      <Card className="p-8 text-center space-y-2">
++        <Heart className="w-10 h-10 text-muted-foreground mx-auto" />
++        <h3 className="text-xl font-semibold">Health Centre Not Yet Configured</h3>
++        <p className="text-muted-foreground">
++          Your institute's admin hasn't set up health centre details yet.
++        </p>
++      </Card>
++    );
++  }
++
++  const firstEmergencyNumber = centre.emergencyContacts?.[0]?.number;
+ 
+   return (
+     <div className="space-y-6">
+       {/* Welcome Card */}
+-      {/* Welcome Card */}
+ <Card className="p-8 bg-gradient-to-br from-blue-50 to-cyan-50 border-0">
+-  <h2 className="text-3xl font-bold mb-2">Sushrut Health Centre, IIT Bhilai</h2>
+-  <p className="text-muted-foreground mb-6">Your trusted partner in campus wellness and healthcare</p>
++  <h2 className="text-3xl font-bold mb-2">{centre.name}</h2>
++  <p className="text-muted-foreground mb-6">{centre.tagline}</p>
+         <div className="flex flex-wrap gap-3">
+           <Dialog>
+             <DialogTrigger asChild>
+@@ -515,24 +378,15 @@ function OverviewTab({ setActiveTab }: { setActiveTab: (tab: string) => void })
+ 
+       {/* Health Centre Timings */}
+       <div className="grid md:grid-cols-2 gap-6">
+-       {/* Sushrut Health Centre Timings */}
+ <Card className="p-6">
+   <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+     <Clock size={20} className="text-primary" />
+-    Sushrut Health Centre Timings
++    {centre.name} Timings
+   </h3>
+   <div className="space-y-3">
+     <div className="flex justify-between pb-3 border-b">
+-      <span className="font-medium">Monday to Friday</span>
+-      <span className="text-muted-foreground">09:00 AM – 05:30 PM</span>
+-    </div>
+-    <div className="flex justify-between pb-3 border-b">
+-      <span className="font-medium">Saturday, Sunday & Holidays</span>
+-      <span className="text-muted-foreground">09:00 AM – 05:30 PM</span>
+-    </div>
+-    <div className="flex justify-between pt-3 bg-red-50 p-3 rounded-lg">
+-      <span className="font-semibold text-red-900">Emergency</span>
+-      <span className="font-bold text-red-900">24x7</span>
++      <span className="font-medium">Hours</span>
++      <span className="text-muted-foreground">{centre.timings || "Not specified"}</span>
+     </div>
+   </div>
+ </Card>
+@@ -583,7 +437,9 @@ function OverviewTab({ setActiveTab }: { setActiveTab: (tab: string) => void })
+             <ul className="space-y-1 text-sm text-yellow-800 list-disc list-inside">
+               <li>Please bring your college ID for all medical consultations</li>
+               <li>Arrive 10 minutes early for appointments</li>
+-              <li>For emergencies, call 07647068419 immediately</li>
++              {firstEmergencyNumber && (
++                <li>For emergencies, call {firstEmergencyNumber} immediately</li>
++              )}
+               <li>All prescriptions and medical reports are confidential</li>
+             </ul>
+           </div>
+@@ -613,12 +469,24 @@ function DoctorsTab({
+   const [searchQuery, setSearchQuery] = useState("");
+   const [filterSpecialization, setFilterSpecialization] = useState("");
+ 
+-  const filteredDoctors = doctorsData.filter((doctor) => {
++  const { data: doctorsData, isLoading, error } = useQuery({
++    queryKey: ["doctors"],
++    queryFn: fetchDoctors,
++  });
++
++  const filteredDoctors = (doctorsData ?? []).filter((doctor) => {
+     const matchesSearch = doctor.name.toLowerCase().includes(searchQuery.toLowerCase());
+     const matchesSpecialization = !filterSpecialization || doctor.specialization.includes(filterSpecialization);
+     return matchesSearch && matchesSpecialization;
+   });
+ 
++  if (isLoading) {
++    return <div className="text-center py-12 text-muted-foreground">Loading doctors...</div>;
++  }
++  if (error) {
++    return <div className="text-center py-12 text-red-600">Couldn't load doctors.</div>;
++  }
++
+   return (
+     <div className="space-y-6">
+       {/* Search and Filter */}
+@@ -669,7 +537,7 @@ function DoctorsTab({
+           </thead>
+           <tbody>
+             {filteredDoctors.map((doctor, index) => (
+-              <tr key={doctor.id} className="border-b hover:bg-gray-50 transition">
++              <tr key={doctor._id} className="border-b hover:bg-gray-50 transition">
+                 <td className="p-4">{index + 1}</td>
+                 <td className="p-4 font-medium">{doctor.name}</td>
+                 <td className="p-4">{doctor.specialization}</td>
+@@ -708,6 +576,29 @@ function DoctorsTab({
+ 
+ // Tab 3: Emergency Contacts
+ function EmergencyContactsTab() {
++  const { data: centre, isLoading, error } = useQuery({
++    queryKey: ["health-centre"],
++    queryFn: fetchHealthCentre,
++  });
++
++  if (isLoading) {
++    return <div className="text-center py-12 text-muted-foreground">Loading emergency contacts...</div>;
++  }
++  if (error) {
++    return <div className="text-center py-12 text-red-600">Couldn't load emergency contacts.</div>;
++  }
++  if (!centre) {
++    return (
++      <Card className="p-8 text-center">
++        <p className="text-muted-foreground">Emergency contacts haven't been configured for your institute yet.</p>
++      </Card>
++    );
++  }
++
++  const ambulanceNumber =
++    centre.emergencyContacts?.find((c) => /ambulance/i.test(c.title))?.number ??
++    centre.emergencyContacts?.[0]?.number;
++
+   return (
+     <div className="space-y-6">
+       {/* Emergency Warning */}
+@@ -716,15 +607,17 @@ function EmergencyContactsTab() {
+           <AlertCircle size={28} className="text-red-600 flex-shrink-0" />
+           <div>
+             <h3 className="text-xl font-bold text-red-900 mb-2">In case of medical emergency</h3>
+-            <p className="text-red-800">Call the ambulance number immediately: <span className="font-bold text-2xl">07647068419</span></p>
++            {ambulanceNumber && (
++              <p className="text-red-800">Call the ambulance number immediately: <span className="font-bold text-2xl">{ambulanceNumber}</span></p>
++            )}
+           </div>
+         </div>
+       </Card>
+ 
+       {/* Emergency Contacts Grid */}
+       <div className="grid md:grid-cols-3 gap-6">
+-        {emergencyContacts.map((contact, index) => {
+-          const IconComponent = contact.icon;
++        {centre.emergencyContacts.map((contact, index) => {
++          const IconComponent = /ambulance/i.test(contact.title) ? AlertCircle : Phone;
+           return (
+             <Card key={index} className="p-6 hover:shadow-lg transition-shadow">
+               <div className="flex items-start justify-between mb-4">
+@@ -783,6 +676,18 @@ function EmergencyContactsTab() {
+ function HospitalsTab() {
+   const [hospitalSubTab, setHospitalSubTab] = useState("hospitals");
+ 
++  const {
++    data: hospitalsData,
++    isLoading: hospitalsLoading,
++    error: hospitalsError,
++  } = useQuery({ queryKey: ["hospitals"], queryFn: fetchHospitals, enabled: hospitalSubTab === "hospitals" });
++
++  const {
++    data: medicalStoresData,
++    isLoading: storesLoading,
++    error: storesError,
++  } = useQuery({ queryKey: ["medical-stores"], queryFn: fetchMedicalStores, enabled: hospitalSubTab === "stores" });
++
+   return (
+     <div className="space-y-6">
+       {/* Sub-tabs */}
+@@ -813,71 +718,93 @@ function HospitalsTab() {
+ 
+       {/* Hospitals Content */}
+       {hospitalSubTab === "hospitals" && (
+-        <div className="grid md:grid-cols-2 gap-6">
+-          {hospitalsData.map((hospital) => (
+-            <Card key={hospital.id} className="p-6 hover:shadow-lg transition-shadow">
+-              <div className="flex justify-between items-start mb-4">
+-                <h3 className="text-lg font-semibold">{hospital.name}</h3>
+-                <Badge className="bg-green-100 text-green-800">{hospital.availability}</Badge>
+-              </div>
+-             <div className="space-y-3 mb-4 text-sm">
+-  <div className="flex items-center gap-2">
+-    <MapPin size={16} className="text-muted-foreground" />
+-    <span>{hospital.distance} km away • {hospital.travelTime} by car</span>
+-  </div>
+-  <div className="flex items-center gap-2">
+-    <Stethoscope size={16} className="text-muted-foreground" />
+-    <span>{hospital.specialization}</span>
+-  </div>
+-  <div className="flex items-center gap-2">
+-    <Phone size={16} className="text-muted-foreground" />
+-    <span>{hospital.helpline}</span>
+-  </div>
+-  <div className="text-xs text-muted-foreground mt-1">
+-    {hospital.address}
+-  </div>
+-</div>
+-<Button 
+-  className="w-full gap-2"
+-  onClick={() => openGoogleMapsDirections(`${hospital.name}, ${hospital.address}`)}
+->
+-  <Navigation size={18} />
+-  View on Map
+-</Button>
++        <>
++          {hospitalsLoading && <div className="text-center py-12 text-muted-foreground">Loading hospitals...</div>}
++          {hospitalsError && <div className="text-center py-12 text-red-600">Couldn't load hospitals.</div>}
++          {hospitalsData && hospitalsData.length === 0 && (
++            <Card className="p-8 text-center">
++              <p className="text-muted-foreground">No hospitals have been added for your institute yet.</p>
+             </Card>
+-          ))}
+-        </div>
++          )}
++          {hospitalsData && hospitalsData.length > 0 && (
++            <div className="grid md:grid-cols-2 gap-6">
++              {hospitalsData.map((hospital) => (
++                <Card key={hospital._id} className="p-6 hover:shadow-lg transition-shadow">
++                  <div className="flex justify-between items-start mb-4">
++                    <h3 className="text-lg font-semibold">{hospital.name}</h3>
++                    <Badge className="bg-green-100 text-green-800">{hospital.availability}</Badge>
++                  </div>
++                 <div className="space-y-3 mb-4 text-sm">
++      <div className="flex items-center gap-2">
++        <MapPin size={16} className="text-muted-foreground" />
++        <span>{hospital.distance} km away • {hospital.travelTime} by car</span>
++      </div>
++      <div className="flex items-center gap-2">
++        <Stethoscope size={16} className="text-muted-foreground" />
++        <span>{hospital.specialization}</span>
++      </div>
++      <div className="flex items-center gap-2">
++        <Phone size={16} className="text-muted-foreground" />
++        <span>{hospital.helpline}</span>
++      </div>
++      <div className="text-xs text-muted-foreground mt-1">
++        {hospital.address}
++      </div>
++    </div>
++    <Button 
++      className="w-full gap-2"
++      onClick={() => openGoogleMapsDirections(`${hospital.name}, ${hospital.address}`)}
++    >
++      <Navigation size={18} />
++      View on Map
++    </Button>
++                </Card>
++              ))}
++            </div>
++          )}
++        </>
+       )}
+ 
+       {/* Medical Stores Content */}
+       {hospitalSubTab === "stores" && (
+-        <div className="grid md:grid-cols-2 gap-6">
+-          {medicalStoresData.map((store) => (
+-            <Card key={store.id} className="p-6 hover:shadow-lg transition-shadow">
+-              <h3 className="text-lg font-semibold mb-4">{store.name}</h3>
+-             <div className="space-y-3 mb-4 text-sm">
+-  <div className="flex items-center gap-2">
+-    <MapPin size={16} className="text-muted-foreground" />
+-    <span>{store.distance} km away • {store.travelTime} by car</span>
+-  </div>
+-  <div className="flex items-center gap-2">
+-    <Clock size={16} className="text-muted-foreground" />
+-    <span>{store.timings}</span>
+-  </div>
+-  <div className="text-xs text-muted-foreground mt-1">
+-    {store.address}
+-  </div>
+-</div>
+-<Button 
+-  className="w-full gap-2"
+-  onClick={() => openGoogleMapsDirections(`${store.name}, ${store.address}`)}
+->
+-  <Navigation size={18} />
+-  View on Map
+-</Button>
++        <>
++          {storesLoading && <div className="text-center py-12 text-muted-foreground">Loading medical stores...</div>}
++          {storesError && <div className="text-center py-12 text-red-600">Couldn't load medical stores.</div>}
++          {medicalStoresData && medicalStoresData.length === 0 && (
++            <Card className="p-8 text-center">
++              <p className="text-muted-foreground">No medical stores have been added for your institute yet.</p>
+             </Card>
+-          ))}
+-        </div>
++          )}
++          {medicalStoresData && medicalStoresData.length > 0 && (
++            <div className="grid md:grid-cols-2 gap-6">
++              {medicalStoresData.map((store) => (
++                <Card key={store._id} className="p-6 hover:shadow-lg transition-shadow">
++                  <h3 className="text-lg font-semibold mb-4">{store.name}</h3>
++                 <div className="space-y-3 mb-4 text-sm">
++      <div className="flex items-center gap-2">
++        <MapPin size={16} className="text-muted-foreground" />
++        <span>{store.distance} km away • {store.travelTime} by car</span>
++      </div>
++      <div className="flex items-center gap-2">
++        <Clock size={16} className="text-muted-foreground" />
++        <span>{store.timings}</span>
++      </div>
++      <div className="text-xs text-muted-foreground mt-1">
++        {store.address}
++      </div>
++    </div>
++    <Button 
++      className="w-full gap-2"
++      onClick={() => openGoogleMapsDirections(`${store.name}, ${store.address}`)}
++    >
++      <Navigation size={18} />
++      View on Map
++    </Button>
++                </Card>
++              ))}
++            </div>
++          )}
++        </>
+       )}
+     </div>
+   );
+@@ -886,41 +813,57 @@ function HospitalsTab() {
+ // Tab 5: Online Consultation
+ function OnlineConsultationTab({
+   selectedDoctor,
+-  appointments,
+-  setAppointments,
+ }: {
+-  selectedDoctor: any;
+-  appointments: any[];
+-  setAppointments: React.Dispatch<React.SetStateAction<any[]>>;
++  selectedDoctor: DoctorData | null;
+ }) {
++  const queryClient = useQueryClient();
++
++  const { data: doctorsData } = useQuery({ queryKey: ["doctors"], queryFn: fetchDoctors });
++  const {
++    data: appointments,
++    isLoading: appointmentsLoading,
++    error: appointmentsError,
++  } = useQuery({ queryKey: ["appointments"], queryFn: fetchAppointments });
++
++  const bookMutation = useMutation({
++    mutationFn: async (payload: { doctorId: string; date: string; time: string }) => {
++      const res = await fetch("/api/appointments", {
++        method: "POST",
++        headers: { "Content-Type": "application/json" },
++        credentials: "include",
++        body: JSON.stringify(payload),
++      });
++      if (!res.ok) {
++        const data = await res.json().catch(() => ({}));
++        throw new Error(data.error || "Failed to book appointment");
++      }
++      return res.json();
++    },
++    onSuccess: () => {
++      queryClient.invalidateQueries({ queryKey: ["appointments"] });
++    },
++  });
+ 
+-  const [doctorId, setDoctorId] = useState<number | null>(
+-    
+-  selectedDoctor ? selectedDoctor.id : null
+-);
+-
+-useEffect(() => {
+-  if (selectedDoctor) {
+-    setDoctorId(selectedDoctor.id);
+-  }
+-}, [selectedDoctor]);
+-
+-const [selectedDate, setSelectedDate] = useState("");
+-const [selectedTime, setSelectedTime] = useState("");
+-
+-const activeDoctor = doctorsData.find(d => d.id === doctorId);
++  const [doctorId, setDoctorId] = useState<string | null>(selectedDoctor ? selectedDoctor._id : null);
+ 
+-const selectedDateObj = selectedDate ? new Date(selectedDate) : null;
+-const selectedDayName = selectedDateObj
+-  ? selectedDateObj.toLocaleDateString("en-US", { weekday: "long" })
+-  : null;
+-const selectedWeek = selectedDateObj
+-  ? Math.ceil(selectedDateObj.getDate() / 7)
+-  : null;
++  useEffect(() => {
++    if (selectedDoctor) {
++      setDoctorId(selectedDoctor._id);
++    }
++  }, [selectedDoctor]);
+ 
++  const [selectedDate, setSelectedDate] = useState("");
++  const [selectedTime, setSelectedTime] = useState("");
+ 
++  const activeDoctor = (doctorsData ?? []).find((d) => d._id === doctorId);
+ 
+-  
++  const selectedDateObj = selectedDate ? new Date(selectedDate) : null;
++  const selectedDayName = selectedDateObj
++    ? selectedDateObj.toLocaleDateString("en-US", { weekday: "long" })
++    : null;
++  const selectedWeek = selectedDateObj
++    ? Math.ceil(selectedDateObj.getDate() / 7)
++    : null;
+ 
+   return (
+     <div className="space-y-6">
+@@ -936,14 +879,14 @@ const selectedWeek = selectedDateObj
+   className="w-full mt-2 px-3 py-2 rounded-lg border border-border"
+   value={doctorId ?? ""}
+   onChange={(e) => {
+-    setDoctorId(Number(e.target.value));
++    setDoctorId(e.target.value || null);
+     setSelectedDate("");
+     setSelectedTime("");
+   }}
+ >
+   <option value="">Select Doctor</option>
+-  {doctorsData.map((doc) => (
+-    <option key={doc.id} value={doc.id}>
++  {(doctorsData ?? []).map((doc) => (
++    <option key={doc._id} value={doc._id}>
+       {doc.name}
+     </option>
+   ))}
+@@ -1006,28 +949,26 @@ selectedDate &&
+          <div className="flex items-end">
+   <Button
+     className="w-full"
+-    disabled={!doctorId || !selectedDate || !selectedTime}
++    disabled={!doctorId || !selectedDate || !selectedTime || bookMutation.isPending}
+     onClick={() => {
+-      if (!activeDoctor) return;
+-
+-      const newAppointment = {
+-        id: Date.now(),
+-        doctor: activeDoctor.name,
+-        date: selectedDate,
+-        time: selectedTime,
+-        status: "confirmed",
+-      };
+-
+-      setAppointments((prev) => [newAppointment, ...prev]);
+-
+-      // reset fields
+-      setSelectedDate("");
+-      setSelectedTime("");
+-
+-      alert("Appointment booked successfully");
++      if (!activeDoctor || !doctorId) return;
++
++      bookMutation.mutate(
++        { doctorId, date: selectedDate, time: selectedTime },
++        {
++          onSuccess: () => {
++            setSelectedDate("");
++            setSelectedTime("");
++            alert("Appointment booked successfully");
++          },
++          onError: (err: any) => {
++            alert(err.message || "Failed to book appointment");
++          },
++        },
++      );
+     }}
+   >
+-    Book Appointment
++    {bookMutation.isPending ? "Booking..." : "Book Appointment"}
+   </Button>
+ </div>
+ 
+@@ -1039,17 +980,24 @@ selectedDate &&
+         <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+           <Calendar size={20} /> My Appointments
+         </h3>
++        {appointmentsLoading && <p className="text-muted-foreground text-sm">Loading appointments...</p>}
++        {appointmentsError && <p className="text-red-600 text-sm">Couldn't load your appointments.</p>}
++        {appointments && appointments.length === 0 && (
++          <p className="text-muted-foreground text-sm">You have no appointments yet.</p>
++        )}
+         <div className="space-y-3">
+-          {appointments.map((apt) => (
+-            <div key={apt.id} className="p-4 border rounded-lg bg-gray-50 hover:bg-gray-100 transition">
++          {(appointments ?? []).map((apt) => (
++            <div key={apt._id} className="p-4 border rounded-lg bg-gray-50 hover:bg-gray-100 transition">
+               <div className="flex justify-between items-start mb-3">
+                 <div>
+-                  <h4 className="font-semibold">{apt.doctor}</h4>
++                  <h4 className="font-semibold">{apt.doctorName}</h4>
+                   <p className="text-sm text-muted-foreground">
+                     {apt.date} at {apt.time}
+                   </p>
+                 </div>
+-                <Badge className="bg-green-100 text-green-800">{apt.status}</Badge>
++                <Badge className={apt.status === "confirmed" ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-600"}>
++                  {apt.status}
++                </Badge>
+               </div>
+               <div className="flex gap-3">
+                 <Button variant="outline" size="sm" className="gap-2">
+@@ -1389,8 +1337,21 @@ function MentalWellnessTab() {
+ 
+ // Tab 7: Maps & Navigation
+ function MapsTab() {
++  const { data: centre } = useQuery({ queryKey: ["health-centre"], queryFn: fetchHealthCentre });
++  const { data: hospitalsData } = useQuery({ queryKey: ["hospitals"], queryFn: fetchHospitals });
++  const nearestHospital = hospitalsData?.[0]; // pre-sorted by distance on the server
++
+   return (
+     <div className="space-y-6">
++      {/* Under development: full multi-institute maps (per-institute coordinates/embeds) not built yet.
++          Showing a static IIT Bhilai preview for all institutes in the meantime. */}
++      <Card className="p-4 bg-amber-50 border-amber-200">
++        <p className="text-sm text-amber-800">
++          <strong>Maps is under development.</strong> This tab currently shows a preview using IIT Bhilai
++          as an example — it isn't yet specific to your institute.
++        </p>
++      </Card>
++
+       {/* Simple Google Maps Embed centered on IIT Bhilai 6th Lane Road */}
+       <Card className="p-0 overflow-hidden h-96">
+         <a 
+@@ -1478,20 +1439,24 @@ function MapsTab() {
+         <Card className="p-6">
+           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+             <Stethoscope size={20} className="text-primary" />
+-            Sushrut Health Centre, IIT Bhilai
++            {centre ? centre.name : "Health Centre"}
+           </h3>
+-          <div className="space-y-3 mb-4 text-sm">
+-            <p><strong>Address:</strong> IIT Bhilai 6th Ln Rd, Jevra Sirsa</p>
+-            <p><strong>City:</strong> Chhattisgarh 491002</p>
+-            <p><strong>Location:</strong> Inside IIT Bhilai Campus</p>
+-          </div>
+-          <Button 
+-            className="w-full gap-2"
+-            onClick={() => openGoogleMapsDirections("Sushrut Health Centre, IIT Bhilai, IIT Bhilai 6th Ln Rd, Jevra Sirsa, Chhattisgarh 491002")}
+-          >
+-            <Navigation size={18} />
+-            View on Map
+-          </Button>
++          {centre ? (
++            <>
++              <div className="space-y-3 mb-4 text-sm">
++                <p><strong>Address:</strong> {centre.address || "Not specified"}</p>
++              </div>
++              <Button 
++                className="w-full gap-2"
++                onClick={() => openGoogleMapsDirections(centre.mapsDestination || centre.address)}
++              >
++                <Navigation size={18} />
++                View on Map
++              </Button>
++            </>
++          ) : (
++            <p className="text-sm text-muted-foreground">Not yet configured for your institute.</p>
++          )}
+         </Card>
+ 
+         <Card className="p-6">
+@@ -1499,18 +1464,24 @@ function MapsTab() {
+             <Building2 size={20} className="text-primary" />
+             Nearest Hospital
+           </h3>
+-          <div className="space-y-3 mb-4 text-sm">
+-            <p><strong>Name:</strong> HI-TEK Superspeciality Hospital, Bhilai</p>
+-            <p><strong>Distance:</strong> 4.6 km</p>
+-            <p><strong>ETA:</strong> 19 minutes by car</p>
+-          </div>
+-          <Button 
+-            className="w-full gap-2"
+-            onClick={() => openGoogleMapsDirections("HI-TEK Superspeciality Hospital, Bhilai")}
+-          >
+-            <Navigation size={18} />
+-            Get Route
+-          </Button>
++          {nearestHospital ? (
++            <>
++              <div className="space-y-3 mb-4 text-sm">
++                <p><strong>Name:</strong> {nearestHospital.name}</p>
++                <p><strong>Distance:</strong> {nearestHospital.distance} km</p>
++                <p><strong>ETA:</strong> {nearestHospital.travelTime} by car</p>
++              </div>
++              <Button 
++                className="w-full gap-2"
++                onClick={() => openGoogleMapsDirections(`${nearestHospital.name}, ${nearestHospital.address}`)}
++              >
++                <Navigation size={18} />
++                Get Route
++              </Button>
++            </>
++          ) : (
++            <p className="text-sm text-muted-foreground">No hospitals configured for your institute yet.</p>
++          )}
+         </Card>
+       </div>
+     </div>
+@@ -1521,17 +1492,7 @@ function MapsTab() {
+ 
+ export default function Medical() {
+   const [activeTab, setActiveTab] = useState("overview");
+-  const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
+-
+-  const [appointments, setAppointments] = useState([
+-    {
+-      id: 1,
+-      doctor: "Dr. Atul Prakash Srivastava",
+-      date: "2026-01-25",
+-      time: "14:00",
+-      status: "confirmed",
+-    },
+-  ]);
++  const [selectedDoctor, setSelectedDoctor] = useState<DoctorData | null>(null);
+   return (
+     <>
+       <div className="space-y-8">
+@@ -1587,8 +1548,6 @@ export default function Medical() {
+          <TabsContent value="consultation">
+   <OnlineConsultationTab
+     selectedDoctor={selectedDoctor}
+-    appointments={appointments}
+-    setAppointments={setAppointments}
+   />
+ </TabsContent>
+ 
