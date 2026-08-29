@@ -21,6 +21,22 @@ export function createServer() {
   // Middleware
   app.use(cors({ origin: true, credentials: true }));
   app.use(express.json());
+
+  // serverless-http can pre-populate req.body as a raw Buffer before Express's
+  // own json parser runs, causing express.json() to skip parsing entirely.
+  // This normalizes that case so req.body is always a proper parsed object.
+  app.use((req, _res, next) => {
+    if (Buffer.isBuffer(req.body)) {
+      const raw = req.body.toString("utf8");
+      try {
+        req.body = raw ? JSON.parse(raw) : {};
+      } catch {
+        req.body = {};
+      }
+    }
+    next();
+  });
+
   app.use(cookieParser());
   app.use("/api", mentalHealthRoute);
 
