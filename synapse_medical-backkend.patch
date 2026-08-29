@@ -1,0 +1,610 @@
+diff --git a/server/index.ts b/server/index.ts
+index fbe6317..8d454d3 100644
+--- a/server/index.ts
++++ b/server/index.ts
+@@ -10,6 +10,11 @@ import instituteRoutes from "./routes/institutes";
+ import noticesRoutes from "./routes/notices";
+ import { requireAuth } from "./middleware/requireAuth";
+ import academicEventsRoutes from "./routes/academicEvents";
++import healthCentreRoutes from "./routes/healthCentre";
++import doctorsRoutes from "./routes/doctors";
++import hospitalsRoutes from "./routes/hospitals";
++import medicalStoresRoutes from "./routes/medicalStores";
++import appointmentsRoutes from "./routes/appointments";
+ 
+ export function createServer() {
+   const app = express();
+@@ -58,5 +63,10 @@ export function createServer() {
+   // Authenticated
+   app.use("/api/notices", requireAuth, noticesRoutes);
+   app.use("/api/academic-events", requireAuth, academicEventsRoutes);
++  app.use("/api/health-centre", requireAuth, healthCentreRoutes);
++  app.use("/api/doctors", requireAuth, doctorsRoutes);
++  app.use("/api/hospitals", requireAuth, hospitalsRoutes);
++  app.use("/api/medical-stores", requireAuth, medicalStoresRoutes);
++  app.use("/api/appointments", requireAuth, appointmentsRoutes);
+   return app;
+ }
+diff --git a/server/models/Appointment.ts b/server/models/Appointment.ts
+new file mode 100644
+index 0000000..97eaa19
+--- /dev/null
++++ b/server/models/Appointment.ts
+@@ -0,0 +1,14 @@
++import { Schema, model, Types } from "mongoose";
++
++const AppointmentSchema = new Schema({
++  instituteId: { type: Types.ObjectId, ref: "Institute", required: true, index: true },
++  userId: { type: Types.ObjectId, ref: "User", required: true, index: true },
++  doctorId: { type: Types.ObjectId, ref: "Doctor", required: true },
++  doctorName: { type: String, required: true }, // denormalized so history survives a doctor being edited/removed
++  date: { type: String, required: true }, // "YYYY-MM-DD"
++  time: { type: String, required: true },
++  status: { type: String, enum: ["confirmed", "cancelled"], default: "confirmed" },
++  createdAt: { type: Date, default: Date.now },
++});
++
++export const Appointment = model("Appointment", AppointmentSchema);
+diff --git a/server/models/Doctor.ts b/server/models/Doctor.ts
+new file mode 100644
+index 0000000..3da27dd
+--- /dev/null
++++ b/server/models/Doctor.ts
+@@ -0,0 +1,22 @@
++import { Schema, model, Types } from "mongoose";
++
++const AvailabilitySlotSchema = new Schema(
++  {
++    day: { type: String, required: true },
++    weeks: [{ type: Number }], // 1-5, which weeks of the month
++    start: { type: String, required: true }, // "HH:MM" 24h
++    end: { type: String, required: true },
++  },
++  { _id: false },
++);
++
++const DoctorSchema = new Schema({
++  instituteId: { type: Types.ObjectId, ref: "Institute", required: true, index: true },
++  name: { type: String, required: true },
++  specialization: { type: String, required: true },
++  availableDays: { type: String, default: "" }, // display string, e.g. "Mon–Fri"
++  timings: { type: String, default: "" }, // display string, e.g. "09:30 AM–06:00 PM"
++  availability: [AvailabilitySlotSchema],
++});
++
++export const Doctor = model("Doctor", DoctorSchema);
+diff --git a/server/models/HealthCentre.ts b/server/models/HealthCentre.ts
+new file mode 100644
+index 0000000..e5dbe42
+--- /dev/null
++++ b/server/models/HealthCentre.ts
+@@ -0,0 +1,18 @@
++import { Schema, model, Types } from "mongoose";
++
++const HealthCentreSchema = new Schema({
++  instituteId: { type: Types.ObjectId, ref: "Institute", required: true, unique: true, index: true },
++  name: { type: String, required: true }, // e.g. "Sushrut Health Centre, IIT Bhilai"
++  tagline: { type: String, default: "" },
++  address: { type: String, default: "" },
++  mapsDestination: { type: String, default: "" }, // full string passed to Google Maps directions
++  timings: { type: String, default: "" },
++  emergencyContacts: [
++    {
++      title: { type: String, required: true },
++      number: { type: String, required: true },
++    },
++  ],
++});
++
++export const HealthCentre = model("HealthCentre", HealthCentreSchema);
+diff --git a/server/models/Hospital.ts b/server/models/Hospital.ts
+new file mode 100644
+index 0000000..2934e07
+--- /dev/null
++++ b/server/models/Hospital.ts
+@@ -0,0 +1,14 @@
++import { Schema, model, Types } from "mongoose";
++
++const HospitalSchema = new Schema({
++  instituteId: { type: Types.ObjectId, ref: "Institute", required: true, index: true },
++  name: { type: String, required: true },
++  distance: { type: Number, default: 0 }, // km
++  travelTime: { type: String, default: "" },
++  specialization: { type: String, default: "" },
++  helpline: { type: String, default: "" },
++  availability: { type: String, default: "" }, // e.g. "24x7"
++  address: { type: String, default: "" },
++});
++
++export const Hospital = model("Hospital", HospitalSchema);
+diff --git a/server/models/MedicalStore.ts b/server/models/MedicalStore.ts
+new file mode 100644
+index 0000000..4ea4a61
+--- /dev/null
++++ b/server/models/MedicalStore.ts
+@@ -0,0 +1,13 @@
++import { Schema, model, Types } from "mongoose";
++
++const MedicalStoreSchema = new Schema({
++  instituteId: { type: Types.ObjectId, ref: "Institute", required: true, index: true },
++  name: { type: String, required: true },
++  distance: { type: Number, default: 0 }, // km
++  travelTime: { type: String, default: "" },
++  phone: { type: String, default: "" },
++  timings: { type: String, default: "" },
++  address: { type: String, default: "" },
++});
++
++export const MedicalStore = model("MedicalStore", MedicalStoreSchema);
+diff --git a/server/routes/appointments.ts b/server/routes/appointments.ts
+new file mode 100644
+index 0000000..957cfbe
+--- /dev/null
++++ b/server/routes/appointments.ts
+@@ -0,0 +1,62 @@
++import { Router } from "express";
++import { z } from "zod";
++import { Appointment } from "../models/Appointment";
++import { Doctor } from "../models/Doctor";
++
++const router = Router();
++
++const bodySchema = z.object({
++  doctorId: z.string().min(1),
++  date: z.string().min(1),
++  time: z.string().min(1),
++});
++
++// GET /api/appointments — only the current user's own appointments, latest first.
++router.get("/", async (req, res) => {
++  const appointments = await Appointment.find({
++    instituteId: req.user!.instituteId,
++    userId: req.user!.userId,
++  }).sort({ createdAt: -1 });
++  res.json({ appointments });
++});
++
++// POST /api/appointments — any authenticated user books for themselves.
++router.post("/", async (req, res) => {
++  const parsed = bodySchema.safeParse(req.body);
++  if (!parsed.success) {
++    return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid input" });
++  }
++  const { doctorId, date, time } = parsed.data;
++
++  const doctor = await Doctor.findById(doctorId);
++  if (!doctor || doctor.instituteId.toString() !== req.user!.instituteId) {
++    return res.status(404).json({ error: "Doctor not found" });
++  }
++
++  const appointment = await Appointment.create({
++    instituteId: req.user!.instituteId,
++    userId: req.user!.userId,
++    doctorId: doctor._id,
++    doctorName: doctor.name,
++    date,
++    time,
++  });
++  res.status(201).json({ appointment });
++});
++
++// PATCH /api/appointments/:id — cancel your own appointment (only status change allowed).
++router.patch("/:id", async (req, res) => {
++  const appointment = await Appointment.findById(req.params.id);
++  if (
++    !appointment ||
++    appointment.instituteId.toString() !== req.user!.instituteId ||
++    appointment.userId.toString() !== req.user!.userId
++  ) {
++    return res.status(404).json({ error: "Appointment not found" });
++  }
++  appointment.status = "cancelled";
++  await appointment.save();
++  res.json({ appointment });
++});
++
++export default router;
+diff --git a/server/routes/doctors.ts b/server/routes/doctors.ts
+new file mode 100644
+index 0000000..d61e868
+--- /dev/null
++++ b/server/routes/doctors.ts
+@@ -0,0 +1,66 @@
++import { Router } from "express";
++import { z } from "zod";
++import { Doctor } from "../models/Doctor";
++
++const router = Router();
++
++const slotSchema = z.object({
++  day: z.string().min(1),
++  weeks: z.array(z.number()),
++  start: z.string().min(1),
++  end: z.string().min(1),
++});
++
++const bodySchema = z.object({
++  name: z.string().min(1),
++  specialization: z.string().min(1),
++  availableDays: z.string().optional(),
++  timings: z.string().optional(),
++  availability: z.array(slotSchema).optional(),
++});
++
++function requireAdmin(req: any, res: any, next: any) {
++  if (req.user?.role !== "admin") {
++    return res.status(403).json({ error: "Admin access required" });
++  }
++  next();
++}
++
++router.get("/", async (req, res) => {
++  const doctors = await Doctor.find({ instituteId: req.user!.instituteId }).sort({ name: 1 });
++  res.json({ doctors });
++});
++
++router.post("/", requireAdmin, async (req, res) => {
++  const parsed = bodySchema.safeParse(req.body);
++  if (!parsed.success) {
++    return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid input" });
++  }
++  const doctor = await Doctor.create({ ...parsed.data, instituteId: req.user!.instituteId });
++  res.status(201).json({ doctor });
++});
++
++router.patch("/:id", requireAdmin, async (req, res) => {
++  const parsed = bodySchema.partial().safeParse(req.body);
++  if (!parsed.success) {
++    return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid input" });
++  }
++  const doctor = await Doctor.findById(req.params.id);
++  if (!doctor || doctor.instituteId.toString() !== req.user!.instituteId) {
++    return res.status(404).json({ error: "Doctor not found" });
++  }
++  Object.assign(doctor, parsed.data);
++  await doctor.save();
++  res.json({ doctor });
++});
++
++router.delete("/:id", requireAdmin, async (req, res) => {
++  const doctor = await Doctor.findById(req.params.id);
++  if (!doctor || doctor.instituteId.toString() !== req.user!.instituteId) {
++    return res.status(404).json({ error: "Doctor not found" });
++  }
++  await doctor.deleteOne();
++  res.json({ ok: true });
++});
++
++export default router;
+diff --git a/server/routes/healthCentre.ts b/server/routes/healthCentre.ts
+new file mode 100644
+index 0000000..d5d9f31
+--- /dev/null
++++ b/server/routes/healthCentre.ts
+@@ -0,0 +1,46 @@
++import { Router } from "express";
++import { z } from "zod";
++import { HealthCentre } from "../models/HealthCentre";
++
++const router = Router();
++
++const bodySchema = z.object({
++  name: z.string().min(1),
++  tagline: z.string().optional(),
++  address: z.string().optional(),
++  mapsDestination: z.string().optional(),
++  timings: z.string().optional(),
++  emergencyContacts: z
++    .array(z.object({ title: z.string().min(1), number: z.string().min(1) }))
++    .optional(),
++});
++
++function requireAdmin(req: any, res: any, next: any) {
++  if (req.user?.role !== "admin") {
++    return res.status(403).json({ error: "Admin access required" });
++  }
++  next();
++}
++
++// GET /api/health-centre — this institute's own centre. 404 if not yet configured.
++router.get("/", async (req, res) => {
++  const centre = await HealthCentre.findOne({ instituteId: req.user!.instituteId });
++  if (!centre) return res.status(404).json({ error: "Health centre not configured for this institute" });
++  res.json({ healthCentre: centre });
++});
++
++// PUT /api/health-centre — admin only, upserts the single record for this institute.
++router.put("/", requireAdmin, async (req, res) => {
++  const parsed = bodySchema.safeParse(req.body);
++  if (!parsed.success) {
++    return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid input" });
++  }
++  const centre = await HealthCentre.findOneAndUpdate(
++    { instituteId: req.user!.instituteId },
++    { ...parsed.data, instituteId: req.user!.instituteId },
++    { upsert: true, new: true },
++  );
++  res.json({ healthCentre: centre });
++});
++
++export default router;
+diff --git a/server/routes/hospitals.ts b/server/routes/hospitals.ts
+new file mode 100644
+index 0000000..d63cfa5
+--- /dev/null
++++ b/server/routes/hospitals.ts
+@@ -0,0 +1,61 @@
++import { Router } from "express";
++import { z } from "zod";
++import { Hospital } from "../models/Hospital";
++
++const router = Router();
++
++const bodySchema = z.object({
++  name: z.string().min(1),
++  distance: z.number().optional(),
++  travelTime: z.string().optional(),
++  specialization: z.string().optional(),
++  helpline: z.string().optional(),
++  availability: z.string().optional(),
++  address: z.string().optional(),
++});
++
++function requireAdmin(req: any, res: any, next: any) {
++  if (req.user?.role !== "admin") {
++    return res.status(403).json({ error: "Admin access required" });
++  }
++  next();
++}
++
++router.get("/", async (req, res) => {
++  const hospitals = await Hospital.find({ instituteId: req.user!.instituteId }).sort({ distance: 1 });
++  res.json({ hospitals });
++});
++
++router.post("/", requireAdmin, async (req, res) => {
++  const parsed = bodySchema.safeParse(req.body);
++  if (!parsed.success) {
++    return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid input" });
++  }
++  const hospital = await Hospital.create({ ...parsed.data, instituteId: req.user!.instituteId });
++  res.status(201).json({ hospital });
++});
++
++router.patch("/:id", requireAdmin, async (req, res) => {
++  const parsed = bodySchema.partial().safeParse(req.body);
++  if (!parsed.success) {
++    return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid input" });
++  }
++  const hospital = await Hospital.findById(req.params.id);
++  if (!hospital || hospital.instituteId.toString() !== req.user!.instituteId) {
++    return res.status(404).json({ error: "Hospital not found" });
++  }
++  Object.assign(hospital, parsed.data);
++  await hospital.save();
++  res.json({ hospital });
++});
++
++router.delete("/:id", requireAdmin, async (req, res) => {
++  const hospital = await Hospital.findById(req.params.id);
++  if (!hospital || hospital.instituteId.toString() !== req.user!.instituteId) {
++    return res.status(404).json({ error: "Hospital not found" });
++  }
++  await hospital.deleteOne();
++  res.json({ ok: true });
++});
++
++export default router;
+diff --git a/server/routes/medicalStores.ts b/server/routes/medicalStores.ts
+new file mode 100644
+index 0000000..7a3f85f
+--- /dev/null
++++ b/server/routes/medicalStores.ts
+@@ -0,0 +1,60 @@
++import { Router } from "express";
++import { z } from "zod";
++import { MedicalStore } from "../models/MedicalStore";
++
++const router = Router();
++
++const bodySchema = z.object({
++  name: z.string().min(1),
++  distance: z.number().optional(),
++  travelTime: z.string().optional(),
++  phone: z.string().optional(),
++  timings: z.string().optional(),
++  address: z.string().optional(),
++});
++
++function requireAdmin(req: any, res: any, next: any) {
++  if (req.user?.role !== "admin") {
++    return res.status(403).json({ error: "Admin access required" });
++  }
++  next();
++}
++
++router.get("/", async (req, res) => {
++  const medicalStores = await MedicalStore.find({ instituteId: req.user!.instituteId }).sort({ distance: 1 });
++  res.json({ medicalStores });
++});
++
++router.post("/", requireAdmin, async (req, res) => {
++  const parsed = bodySchema.safeParse(req.body);
++  if (!parsed.success) {
++    return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid input" });
++  }
++  const store = await MedicalStore.create({ ...parsed.data, instituteId: req.user!.instituteId });
++  res.status(201).json({ medicalStore: store });
++});
++
++router.patch("/:id", requireAdmin, async (req, res) => {
++  const parsed = bodySchema.partial().safeParse(req.body);
++  if (!parsed.success) {
++    return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid input" });
++  }
++  const store = await MedicalStore.findById(req.params.id);
++  if (!store || store.instituteId.toString() !== req.user!.instituteId) {
++    return res.status(404).json({ error: "Medical store not found" });
++  }
++  Object.assign(store, parsed.data);
++  await store.save();
++  res.json({ medicalStore: store });
++});
++
++router.delete("/:id", requireAdmin, async (req, res) => {
++  const store = await MedicalStore.findById(req.params.id);
++  if (!store || store.instituteId.toString() !== req.user!.instituteId) {
++    return res.status(404).json({ error: "Medical store not found" });
++  }
++  await store.deleteOne();
++  res.json({ ok: true });
++});
++
++export default router;
+diff --git a/server/scripts/seed.ts b/server/scripts/seed.ts
+index b3c3bbc..5704c6a 100644
+--- a/server/scripts/seed.ts
++++ b/server/scripts/seed.ts
+@@ -3,6 +3,10 @@ import bcrypt from "bcryptjs";
+ import mongoose from "mongoose";
+ import { Institute } from "../models/Institute";
+ import { User } from "../models/User";
++import { HealthCentre } from "../models/HealthCentre";
++import { Doctor } from "../models/Doctor";
++import { Hospital } from "../models/Hospital";
++import { MedicalStore } from "../models/MedicalStore";
+ 
+ async function seed() {
+   const uri = process.env.MONGODB_URI;
+@@ -14,12 +18,15 @@ async function seed() {
+     { name: "IIT Delhi", domain: "iitd.ac.in", city: "New Delhi" },
+   ];
+ 
++  const instituteDocs: Record<string, any> = {};
++
+   for (const data of institutesData) {
+     const institute = await Institute.findOneAndUpdate(
+       { domain: data.domain },
+       data,
+-      { upsert: true, new: true },
++      { upsert: true, returnDocument: "after" },
+     );
++    instituteDocs[data.domain] = institute;
+ 
+     const adminEmail = `admin@${data.domain}`;
+     const existingAdmin = await User.findOne({ email: adminEmail });
+@@ -38,6 +45,109 @@ async function seed() {
+     }
+   }
+ 
++  // Seed IIT Bhilai's real health-centre data — deliberately institute-specific;
++  // IIT Delhi gets none, which is the point (proves the old hardcoded values are gone).
++  const bhilai = instituteDocs["iitbhilai.ac.in"];
++
++  await HealthCentre.findOneAndUpdate(
++    { instituteId: bhilai._id },
++    {
++      instituteId: bhilai._id,
++      name: "Sushrut Health Centre, IIT Bhilai",
++      tagline: "Your trusted partner in campus wellness and healthcare",
++      address: "IIT Bhilai 6th Ln Rd, Jevra Sirsa, Chhattisgarh 491002",
++      mapsDestination: "Sushrut Health Centre, IIT Bhilai, IIT Bhilai 6th Ln Rd, Jevra Sirsa, Chhattisgarh 491002",
++      timings: "24x7 (Emergency), OPD 09:30 AM–06:00 PM",
++      emergencyContacts: [
++        { title: "Health Centre Telephone", number: "07882991612" },
++        { title: "Health Centre Helpline", number: "09424283691" },
++        { title: "Ambulance", number: "07647068419" },
++      ],
++    },
++    { upsert: true },
++  );
++
++  const existingDoctors = await Doctor.countDocuments({ instituteId: bhilai._id });
++  if (existingDoctors === 0) {
++    await Doctor.insertMany([
++      {
++        instituteId: bhilai._id,
++        name: "Dr. Atul Prakash Srivastava",
++        specialization: "General & Emergency Physician",
++        availableDays: "Mon–Fri",
++        timings: "09:30 AM–06:00 PM",
++        availability: [
++          { day: "Monday", weeks: [1, 2, 3, 4, 5], start: "09:30", end: "18:00" },
++          { day: "Tuesday", weeks: [1, 2, 3, 4, 5], start: "09:30", end: "18:00" },
++          { day: "Wednesday", weeks: [1, 2, 3, 4, 5], start: "09:30", end: "18:00" },
++          { day: "Thursday", weeks: [1, 2, 3, 4, 5], start: "09:30", end: "18:00" },
++          { day: "Friday", weeks: [1, 2, 3, 4, 5], start: "09:30", end: "18:00" },
++        ],
++      },
++      {
++        instituteId: bhilai._id,
++        name: "Dr. Ankur Parganiha",
++        specialization: "Paediatric",
++        availableDays: "1st & 3rd Fri",
++        timings: "02:00 PM–04:00 PM",
++        availability: [{ day: "Friday", weeks: [1, 3], start: "14:00", end: "16:00" }],
++      },
++    ]);
++    console.log("Seeded doctors for IIT Bhilai");
++  }
++
++  const existingHospitals = await Hospital.countDocuments({ instituteId: bhilai._id });
++  if (existingHospitals === 0) {
++    await Hospital.insertMany([
++      {
++        instituteId: bhilai._id,
++        name: "HI-TEK Superspeciality Hospital, Bhilai",
++        distance: 4.6,
++        travelTime: "19 min",
++        specialization: "Multi-specialty, Emergency",
++        helpline: "0788-2233445",
++        availability: "24x7",
++        address: "Bhilai, Chhattisgarh",
++      },
++      {
++        instituteId: bhilai._id,
++        name: "Sparsh MultiSpecialty Hospital",
++        distance: 6.4,
++        travelTime: "18 min",
++        specialization: "Multi-specialty, Critical Care",
++        helpline: "0788-2233556",
++        availability: "24x7",
++        address: "Ram Nagar Supela, Bhilai",
++      },
++    ]);
++    console.log("Seeded hospitals for IIT Bhilai");
++  }
++
++  const existingStores = await MedicalStore.countDocuments({ instituteId: bhilai._id });
++  if (existingStores === 0) {
++    await MedicalStore.insertMany([
++      {
++        instituteId: bhilai._id,
++        name: "Jan Aushadhi Store",
++        distance: 4.6,
++        travelTime: "15 min",
++        phone: "078229-00777",
++        timings: "08:00 AM–08:00 PM",
++        address: "Vivekanand Nagar, Bhilai",
++      },
++      {
++        instituteId: bhilai._id,
++        name: "C.G. Medical Stores",
++        distance: 4.6,
++        travelTime: "13 min",
++        phone: "09876543211",
++        timings: "08:00 AM–10:00 PM",
++        address: "Smriti Nagar, Bhilai, Durg",
++      },
++    ]);
++    console.log("Seeded medical stores for IIT Bhilai");
++  }
++
+   console.log("Seed complete.");
+   await mongoose.disconnect();
+ }
+@@ -46,3 +156,4 @@ seed().catch((err) => {
+   console.error(err);
+   process.exit(1);
+ });
++

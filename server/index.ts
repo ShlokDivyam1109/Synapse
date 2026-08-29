@@ -10,6 +10,11 @@ import instituteRoutes from "./routes/institutes";
 import noticesRoutes from "./routes/notices";
 import { requireAuth } from "./middleware/requireAuth";
 import academicEventsRoutes from "./routes/academicEvents";
+import healthCentreRoutes from "./routes/healthCentre";
+import doctorsRoutes from "./routes/doctors";
+import hospitalsRoutes from "./routes/hospitals";
+import medicalStoresRoutes from "./routes/medicalStores";
+import appointmentsRoutes from "./routes/appointments";
 
 export function createServer() {
   const app = express();
@@ -58,5 +63,10 @@ export function createServer() {
   // Authenticated
   app.use("/api/notices", requireAuth, noticesRoutes);
   app.use("/api/academic-events", requireAuth, academicEventsRoutes);
+  app.use("/api/health-centre", requireAuth, healthCentreRoutes);
+  app.use("/api/doctors", requireAuth, doctorsRoutes);
+  app.use("/api/hospitals", requireAuth, hospitalsRoutes);
+  app.use("/api/medical-stores", requireAuth, medicalStoresRoutes);
+  app.use("/api/appointments", requireAuth, appointmentsRoutes);
   return app;
 }
