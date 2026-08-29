@@ -72,6 +72,7 @@ router.post("/auth/signup", async (req, res) => {
 });
 
 router.post("/auth/login", async (req, res) => {
+  console.log("LOGIN DEBUG - body:", JSON.stringify(req.body), "content-type:", req.headers["content-type"]);
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid email or password" });
