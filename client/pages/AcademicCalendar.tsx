@@ -12,6 +12,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface CalendarEvent {
   id: string;
@@ -22,188 +23,7 @@ interface CalendarEvent {
   time?: string;
 }
 
-const academicEvents: CalendarEvent[] = [
-  // ===== JAN 2026 =====
 
-  { id: "1", date: "2026-01-05", title: "Winter Semester Begins", type: "semester", description: "Start of Winter Semester" },
-  { id: "2", date: "2026-01-05", title: "Course Registration Deadline", type: "deadline", description: "Last day to register courses" },
-  { id: "3", date: "2026-01-05", title: "Orientation Program", type: "event", description: "Welcome orientation" },
-
-  { id: "4", date: "2026-01-06", title: "Data Structures Quiz", type: "exam", description: "Quiz 1" },
-  { id: "5", date: "2026-01-06", title: "Library Orientation", type: "event", description: "Library resources session" },
-
-  { id: "6", date: "2026-01-07", title: "Web Dev Assignment Released", type: "event", description: "Assignment briefing" },
-  { id: "7", date: "2026-01-07", title: "Assignment Submission Deadline", type: "deadline", description: "Initial submission" },
-
-  { id: "8", date: "2026-01-08", title: "Guest Lecture: AI Trends", type: "event", description: "Industry expert talk" },
-  { id: "9", date: "2026-01-08", title: "Operating Systems Lab", type: "exam", description: "Lab evaluation" },
-
-  { id: "10", date: "2026-01-09", title: "Sports Club Registrations", type: "event", description: "Open registrations" },
-
-  { id: "11", date: "2026-01-10", title: "Weekly Attendance Review", type: "deadline", description: "Attendance check" },
-  { id: "12", date: "2026-01-10", title: "Cultural Club Meet", type: "event", description: "Introductory meet" },
-
-  { id: "13", date: "2026-01-11", title: "Algorithms Tutorial", type: "event", description: "Extra tutorial session" },
-
-  { id: "14", date: "2026-01-12", title: "DS Assignment Deadline", type: "deadline", description: "Submit assignment" },
-  { id: "15", date: "2026-01-12", title: "Problem Solving Contest", type: "event", description: "Coding contest" },
-
-  { id: "16", date: "2026-01-13", title: "Mid-Sem Preparation Session", type: "event", description: "Exam prep guidance" },
-
-  { id: "17", date: "2026-01-14", title: "Database Quiz", type: "exam", description: "Short quiz" },
-  { id: "18", date: "2026-01-14", title: "Project Proposal Submission", type: "deadline", description: "Proposal due" },
-
-  { id: "19", date: "2026-01-15", title: "Mid-Sem Exam – Data Structures", type: "exam", description: "Written exam" },
-  { id: "20", date: "2026-01-15", title: "Coding Contest", type: "event", description: "Inter-hostel contest" },
-  { id: "21", date: "2026-01-15", title: "Attendance Freeze", type: "deadline", description: "Final attendance locked" },
-
-  { id: "22", date: "2026-01-16", title: "Mid-Sem Exam – Algorithms", type: "exam", description: "Theory exam" },
-
-  { id: "23", date: "2026-01-17", title: "Career Guidance Seminar", type: "event", description: "Industry insights" },
-
-  { id: "24", date: "2026-01-18", title: "Cultural Night", type: "event", description: "Music & dance night" },
-  { id: "25", date: "2026-01-18", title: "Ethics Assignment Deadline", type: "deadline", description: "Final submission" },
-
-  { id: "26", date: "2026-01-19", title: "Group Discussion Round", type: "exam", description: "Assessment round" },
-
-  { id: "27", date: "2026-01-20", title: "Hackathon Registration Opens", type: "event", description: "Register now" },
-
-  { id: "28", date: "2026-01-21", title: "Web Dev Mid-Sem", type: "exam", description: "Practical exam" },
-
-  { id: "29", date: "2026-01-22", title: "Research Workshop", type: "event", description: "Research methodology" },
-
-  { id: "30", date: "2026-01-23", title: "Mini Project Deadline", type: "deadline", description: "Project submission" },
-
-  { id: "31", date: "2026-01-24", title: "Tech Talk Series", type: "event", description: "Emerging technologies" },
-
-  { id: "32", date: "2026-01-25", title: "Mock Interview Day", type: "event", description: "Interview practice" },
-
-  { id: "33", date: "2026-01-26", title: "Republic Day Holiday", type: "holiday", description: "National holiday" },
-
-  {
-  id: "60",date: "2026-01-27",title: "Academic Advising Session",type: "event",description: "One-on-one faculty guidance"},
-
-  { id: "35", date: "2026-01-28", title: "Database Lab Exam", type: "exam", description: "Lab assessment" },
-
-  { id: "36", date: "2026-01-29", title: "Internship Awareness Session", type: "event", description: "Internship roadmap" },
-
-  { id: "37", date: "2026-01-30", title: "Feedback Form Deadline", type: "deadline", description: "Submit feedback" },
-
-  { id: "38", date: "2026-01-31", title: "Departmental Meetup", type: "event", description: "Faculty-student interaction" },
-
-  // ===== FEB 2026 (TILL 15) =====
-
-  { id: "39", date: "2026-02-01", title: "Sports Week Begins", type: "event", description: "Annual sports week" },
-
-  { id: "40", date: "2026-02-02", title: "Database Project Demo", type: "exam", description: "Live demo" },
-  { id: "41", date: "2026-02-02", title: "Sports Events", type: "event", description: "Track & field" },
-
-  { id: "42", date: "2026-02-03", title: "Tech Fest Planning Meet", type: "event", description: "Volunteer meeting" },
-
-  { id: "43", date: "2026-02-04", title: "Web Dev Hackathon", type: "event", description: "24-hour hackathon" },
-  { id: "44", date: "2026-02-04", title: "Hackathon Submission", type: "deadline", description: "Final submission" },
-
-  { id: "45", date: "2026-02-05", title: "Hackathon Evaluation", type: "exam", description: "Judging round" },
-
-  { id: "46", date: "2026-02-06", title: "Resume Review Session", type: "event", description: "Resume feedback" },
-
-  { id: "47", date: "2026-02-07", title: "Sports Finals", type: "event", description: "Final matches" },
-
-  { id: "48", date: "2026-02-08", title: "Mental Health Workshop", type: "event", description: "Wellness session" },
-
-  { id: "49", date: "2026-02-09", title: "Internal Assessment", type: "exam", description: "Continuous evaluation" },
-
-  {
-  id: "62",
-  date: "2026-02-10",
-  title: "Advanced Coding Workshop",
-  type: "event",
-  description: "Hands-on problem solving"
-},
-{
-  id: "63",
-  date: "2026-02-10",
-  title: "Lab Maintenance Window",
-  type: "deadline",
-  description: "Lab access restricted post 6 PM"
-},
-
-  { id: "52", date: "2026-02-11", title: "Elective Selection Opens", type: "event", description: "Choose electives" },
-
-  { id: "53", date: "2026-02-12", title: "Soft Skills Assessment", type: "exam", description: "Communication test" },
-  { id: "54", date: "2026-02-12", title: "Group Presentation", type: "event", description: "Presentation day" },
-
-  { id: "55", date: "2026-02-13", title: "Course Feedback Deadline", type: "deadline", description: "Submit feedback" },
-
-  { id: "56", date: "2026-02-14", title: "Cultural Fest Day 1", type: "event", description: "Fest inauguration" },
-
-  { id: "57", date: "2026-02-15", title: "Cultural Fest Day 2", type: "event", description: "Performances & DJ" },
-  {
-  id: "70",
-  date: "2026-01-23",
-  title: "Elective Orientation Session",
-  type: "event",
-  description: "Overview of available electives for the semester"
-},
-{
-  id: "71",
-  date: "2026-01-23",
-  title: "Web Development Assignment Released",
-  type: "deadline",
-  description: "Assignment instructions shared on portal"
-},
-
-// Jan 24
-
-{
-  id: "73",
-  date: "2026-01-24",
-  title: "Student Council Open Meet",
-  type: "event",
-  description: "Open discussion with council members"
-},
-
-// Jan 25
-{
-  id: "74",
-  date: "2026-01-25",
-  title: "Library Usage Workshop",
-  type: "event",
-  description: "Effective research & referencing techniques"
-},
-{
-  id: "75",
-  date: "2026-01-25",
-  title: "Minor Project Topic Selection Deadline",
-  type: "deadline",
-  description: "Submit preferred project topics"
-},
-
-// Jan 26 (Holiday-safe additions)
-{
-  id: "76",
-  date: "2026-01-26",
-  title: "Republic Day Cultural Program",
-  type: "event",
-  description: "Patriotic performances and speeches"
-},
-
-// Jan 27
-{
-  id: "78",
-  date: "2026-01-27",
-  title: "Faculty Mentorship Meet",
-  type: "event",
-  description: "Mentor–mentee interaction session"
-},
-{
-  id: "79",
-  date: "2026-01-27",
-  title: "Database Design Assignment Released",
-  type: "deadline",
-  description: "ER diagram and schema design task"
-},
-];
 
 
 function getTypeColor(type: CalendarEvent["type"]) {
@@ -280,7 +100,33 @@ const [activeFilter, setActiveFilter] = useState<
   "all" | "exam" | "deadline" | "holiday" | "event" | "semester"
 >("all");
 
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["academic-events"],
+    queryFn: () =>
+      fetch("/api/academic-events", { credentials: "include" }).then((r) => {
+        if (!r.ok) throw new Error("Failed to load events");
+        return r.json();
+      }),
+  });
+  const academicEvents: CalendarEvent[] = (data?.events ?? []).map(
+    (e: any) => ({ ...e, id: e._id }),
+  );
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading academic calendar…</p>
+      </div>
+    );
+  }
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-muted-foreground">Could not load academic events.</p>
+        <Button onClick={() => refetch()}>Retry</Button>
+      </div>
+    );
+  }
 
   const eventsForSelectedDate = academicEvents.filter(
     (event) =>
