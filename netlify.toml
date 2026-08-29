@@ -7,3 +7,7 @@
   from = "/api/*"
   to = "/.netlify/functions/api"
   status = 200
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["mongoose", "bson", "mongodb"]
