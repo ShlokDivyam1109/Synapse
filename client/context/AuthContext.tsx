@@ -6,6 +6,7 @@ interface User {
   email: string;
   role: "student" | "admin";
   instituteId: string;
+  institute?: { name: string; city?: string } | null;
   studentId?: string;
   department?: string;
   year?: string;
@@ -96,6 +97,7 @@ function normalizeUser(raw: any): User {
     email: raw.email,
     role: raw.role,
     instituteId: raw.instituteId,
+    institute: raw.institute ?? null,
     studentId: raw.studentId,
     department: raw.department,
     year: raw.year,

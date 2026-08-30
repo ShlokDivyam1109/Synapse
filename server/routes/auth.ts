@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { User } from "../models/User";
+import { Institute } from "../models/Institute";
 import { requireAuth } from "../middleware/requireAuth";
 
 const router = Router();
@@ -34,6 +35,14 @@ function sanitize(user: any) {
   return rest;
 }
 
+// Adds an `institute` field (name/city) alongside the existing `instituteId`
+// string, so the client can display the institute without a second request.
+async function withInstitute(user: any) {
+  const obj = sanitize(user);
+  const institute = await Institute.findById(obj.instituteId).select("name city");
+  return { ...obj, institute: institute ? { name: institute.name, city: institute.city } : null };
+}
+
 // Accounts are provisioned directly (seed scripts / admin, not self-service signup),
 // since this app assumes institute data already exists in MongoDB by the time a
 // student ever logs in. There is intentionally no POST /auth/signup route.
@@ -55,7 +64,7 @@ router.post("/auth/login", async (req, res) => {
   }
 
   issueToken(res, user);
-  res.json({ user: sanitize(user) });
+  res.json({ user: await withInstitute(user) });
 });
 
 router.post("/auth/logout", (_req, res) => {
@@ -66,7 +75,7 @@ router.post("/auth/logout", (_req, res) => {
 router.get("/auth/me", requireAuth, async (req, res) => {
   const user = await User.findById(req.user!.userId);
   if (!user) return res.status(401).json({ error: "Not authenticated" });
-  res.json({ user: sanitize(user) });
+  res.json({ user: await withInstitute(user) });
 });
 
 export default router;

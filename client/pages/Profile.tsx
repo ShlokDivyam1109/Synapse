@@ -5,7 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Mail, Phone, Droplets, MapPin,
   GraduationCap, Calendar, Heart,
-  Users, AlertCircle
+  Users, AlertCircle, Building2
 } from "lucide-react";
 import { useState } from "react";
 
@@ -56,6 +56,12 @@ export default function Profile() {
             <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
             <p className="text-gray-600 mt-1">{user.studentId}</p>
             <p className="text-gray-500 text-sm mt-2">{user.department}</p>
+            {user.institute?.name && (
+              <div className="flex items-center justify-center gap-2 mt-2 text-gray-600 text-sm">
+                <Building2 className="w-4 h-4" />
+                <span>{user.institute.name}</span>
+              </div>
+            )}
             
             <div className="mt-6 space-y-3">
               <div className="flex items-center justify-center gap-2">
