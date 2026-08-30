@@ -10,6 +10,10 @@ import { MedicalStore } from "../models/MedicalStore";
 import { HostelRoom } from "../models/HostelRoom";
 import { HostelRule } from "../models/HostelRule";
 import { HostelNotice } from "../models/HostelNotice";
+import { Course } from "../models/Course";
+import { Enrollment } from "../models/Enrollment";
+import { Attendance } from "../models/Attendance";
+import { Task } from "../models/Task";
 
 async function seed() {
   const uri = process.env.MONGODB_URI;
@@ -197,6 +201,79 @@ async function seed() {
   // when testing the Hostel Management page end-to-end.
   if (seededRoom) {
     await User.updateOne({ email: "admin@iitbhilai.ac.in" }, { hostelRoomId: seededRoom._id });
+  }
+
+  // Seed a course + enrollment + attendance + tasks for the IIT Bhilai admin, so
+  // Courses, Timetable, Attendance, and Tasks all have something real to show.
+  const bhilaiAdmin = await User.findOne({ email: "admin@iitbhilai.ac.in" });
+  if (bhilaiAdmin) {
+    const existingCourse = await Course.findOne({ instituteId: bhilai._id, code: "CSL253" });
+    const course =
+      existingCourse ??
+      (await Course.create({
+        instituteId: bhilai._id,
+        program: "B.Tech",
+        semesterNumber: 5,
+        semesterName: "2025-26-W",
+        code: "CSL253",
+        title: "Theory of Computation",
+        type: "Program Core",
+        credits: 4,
+        faculty: "Dr. Rishi Ranjan Singh",
+        lastUpdated: "07 Jan, 2026",
+        day: "Monday",
+        time: "14:30 - 15:30",
+        room: "LT-3",
+      }));
+
+    await Enrollment.findOneAndUpdate(
+      { userId: bhilaiAdmin._id, courseId: course._id },
+      { userId: bhilaiAdmin._id, courseId: course._id, instituteId: bhilai._id },
+      { upsert: true },
+    );
+
+    await Attendance.findOneAndUpdate(
+      { userId: bhilaiAdmin._id, courseId: course._id },
+      {
+        userId: bhilaiAdmin._id,
+        courseId: course._id,
+        instituteId: bhilai._id,
+        totalClasses: 24,
+        attendedClasses: 18,
+        lastUpdated: "07 Jan, 2026",
+      },
+      { upsert: true },
+    );
+
+    const existingTasks = await Task.countDocuments({ userId: bhilaiAdmin._id });
+    if (existingTasks === 0) {
+      await Task.insertMany([
+        {
+          instituteId: bhilai._id,
+          userId: bhilaiAdmin._id,
+          title: "Prepare TOC Lecture Slides",
+          description: "Cover pushdown automata for next week",
+          category: "assignment",
+          deadline: "2026-02-05",
+          time: "18:00",
+          priority: "high",
+          status: "pending",
+        },
+        {
+          instituteId: bhilai._id,
+          userId: bhilaiAdmin._id,
+          title: "Grade Assignment 3",
+          description: "Grade submitted regex-to-NFA assignments",
+          category: "other",
+          deadline: "2026-02-03",
+          time: "12:00",
+          priority: "medium",
+          status: "pending",
+        },
+      ]);
+      console.log("Seeded tasks for IIT Bhilai admin");
+    }
+    console.log("Seeded course, enrollment, and attendance for IIT Bhilai admin");
   }
 
   console.log("Seed complete.");

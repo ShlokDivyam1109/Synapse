@@ -1,6 +1,6 @@
 import { Search, BookOpen, X } from "lucide-react";
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 
 interface Course {
@@ -40,32 +40,6 @@ export default function Courses() {
   });
 
   const semesters: Semester[] = data?.semesters ?? [];
-
-  const queryClient = useQueryClient();
-
-  const enrollMutation = useMutation({
-    mutationFn: async ({ courseId, enrolled }: { courseId: string; enrolled: boolean }) => {
-      const res = enrolled
-        ? await fetch(`/api/enrollments/${courseId}`, { method: "DELETE", credentials: "include" })
-        : await fetch("/api/enrollments", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ courseId }),
-          });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || "Failed to update enrollment");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      // A course's enrolled state changing also changes what the Timetable shows,
-      // since Timetable is derived directly from enrollments — refresh both.
-      queryClient.invalidateQueries({ queryKey: ["courses"] });
-      queryClient.invalidateQueries({ queryKey: ["timetable"] });
-    },
-  });
 
   const filteredSemesters = semesters.map(semester => ({
     ...semester,
@@ -326,19 +300,11 @@ export default function Courses() {
                           </div>
                         </div>
 
-                        <button
-                          onClick={() =>
-                            enrollMutation.mutate({ courseId: course.id, enrolled: course.enrolled })
-                          }
-                          disabled={enrollMutation.isPending}
-                          className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 ${
-                            course.enrolled
-                              ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                              : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:opacity-90"
-                          }`}
-                        >
-                          {course.enrolled ? "Unenroll" : "Enroll"}
-                        </button>
+                        {course.enrolled && (
+                          <div className="w-full py-2.5 rounded-lg text-sm font-semibold text-center bg-green-100 text-green-800">
+                            Enrolled
+                          </div>
+                        )}
 
                       </div>
                     ))}

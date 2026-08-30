@@ -20,11 +20,12 @@ router.get("/me", async (req, res) => {
   res.json({ courses });
 });
 
-// POST /api/enrollments — self-service: a user enrolls THEMSELVES in a course.
-// courseId comes from the body, but userId is always req.user.userId — never trust
-// a client-supplied userId here, or any student could enroll on another's behalf.
+// POST /api/enrollments — admin only. Enrollment is managed by admins directly, not
+// self-service by students, so this requires the admin role even though it accepts
+// any userId+courseId pair (unlike most routes here, which lock to req.user.userId).
 router.post("/", async (req, res) => {
-  const parsed = bodySchema.safeParse(req.body);
+  if (req.user?.role !== "admin") return res.status(403).json({ error: "Admin access required" });
+  const parsed = bodySchema.extend({ userId: z.string().min(1) }).safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid input" });
   }
@@ -38,9 +39,8 @@ router.post("/", async (req, res) => {
   try {
     const enrollment = await Enrollment.create({
       instituteId: req.user!.instituteId,
-      userId: req.user!.userId,
+      userId: parsed.data.userId,
       courseId: course._id,
-      semesterName: course.semesterName,
     });
     res.status(201).json({ enrollment });
   } catch (err: any) {
@@ -51,12 +51,15 @@ router.post("/", async (req, res) => {
   }
 });
 
-// DELETE /api/enrollments/:courseId — self-service unenroll. Scoped to the current
-// user's own enrollment only — there is no path for unenrolling someone else here.
+// DELETE /api/enrollments/:courseId — admin only, needs ?userId= since it's no longer
+// scoped to the caller's own enrollment.
 router.delete("/:courseId", async (req, res) => {
+  if (req.user?.role !== "admin") return res.status(403).json({ error: "Admin access required" });
+  const userId = req.query.userId as string | undefined;
+  if (!userId) return res.status(400).json({ error: "userId query param required" });
   const result = await Enrollment.findOneAndDelete({
     instituteId: req.user!.instituteId,
-    userId: req.user!.userId,
+    userId,
     courseId: req.params.courseId,
   });
   if (!result) return res.status(404).json({ error: "Enrollment not found" });

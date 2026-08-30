@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   PlusCircle, CheckCircle, Clock, AlertCircle, 
   Calendar, Tag, Flag, Trash2, Check,
@@ -7,7 +8,7 @@ import {
 } from "lucide-react";
 
 interface Task {
-  id: number;
+  id: string;
   title: string;
   description: string;
   category: 'assignment' | 'exam-prep' | 'personal' | 'study' | 'other';
@@ -18,119 +19,53 @@ interface Task {
   createdAt: string;
 }
 
+async function fetchTasks(): Promise<Task[]> {
+  const res = await fetch("/api/tasks", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load tasks");
+  const data = await res.json();
+  return data.tasks.map((t: any) => ({ ...t, id: t._id }));
+}
+
 export default function Tasks() {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: 1,
-      title: "Complete Math Assignment",
-      description: "Solve calculus problems from chapter 5",
-      category: "assignment",
-      deadline: getTodayDate(),
-      time: "18:00",
-      priority: "high",
-      status: "pending",
-      createdAt: "2023-10-15"
+  const queryClient = useQueryClient();
+  const { data: tasks = [], isLoading, error } = useQuery({ queryKey: ["tasks"], queryFn: fetchTasks });
+
+  const addTaskMutation = useMutation({
+    mutationFn: async (payload: Omit<Task, "id" | "status" | "createdAt">) => {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Failed to add task");
+      return res.json();
     },
-    {
-      id: 2,
-      title: "Prepare for Physics Exam",
-      description: "Review thermodynamics and optics chapters",
-      category: "exam-prep",
-      deadline: "2026-01-27",
-      time: "14:00",
-      priority: "high",
-      status: "pending",
-      createdAt: "2026-01-27"
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: Task["status"] }) => {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error("Failed to update task");
+      return res.json();
     },
-    {
-      id: 3,
-      title: "Buy Groceries",
-      description: "Milk, eggs, bread, fruits, and vegetables",
-      category: "personal",
-      deadline: "2026-01-28",
-      time: "20:00",
-      priority: "medium",
-      status: "pending",
-      createdAt: "2023-10-18"
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/tasks/${id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Failed to delete task");
     },
-    {
-      id: 4,
-      title: "Finish History Essay",
-      description: "World War II causes and consequences",
-      category: "assignment",
-      deadline: "2026-01-12",
-      time: "23:59",
-      priority: "high",
-      status: "finished",
-      createdAt: "2023-10-05"
-    },
-    {
-      id: 5,
-      title: "Chemistry Lab Report",
-      description: "Acid-base titration experiment results",
-      category: "assignment",
-      deadline: "2025-12-28",
-      time: "10:00",
-      priority: "medium",
-      status: "finished",
-      createdAt: "2023-10-08"
-    },
-    {
-      id: 6,
-      title: "Create Study Flashcards",
-      description: "Biology terms for upcoming test",
-      category: "study",
-      deadline: "2026-01-16",
-      time: "17:00",
-      priority: "low",
-      status: "finished",
-      createdAt: "2023-10-05"
-    },
-    {
-      id: 7,
-      title: "Group Project Meeting",
-      description: "Discuss project progress and next steps",
-      category: "other",
-      deadline: "2026-01-19",
-      time: "15:30",
-      priority: "medium",
-      status: "finished",
-      createdAt: "2023-10-10"
-    },
-    {
-      id: 8,
-      title: "Update Resume",
-      description: "Add recent experience and skills",
-      category: "personal",
-      deadline: "2026-01-23",
-      time: "12:00",
-      priority: "medium",
-      status: "finished",
-      createdAt: "2023-10-01"
-    },
-    {
-      id: 9,
-      title: "Prepare Presentation Slides",
-      description: "Marketing strategy presentation for class",
-      category: "assignment",
-      deadline: "2025-12-09",
-      time: "09:00",
-      priority: "high",
-      status: "finished",
-      createdAt: "2023-10-01"
-    },
-    {
-      id: 10,
-      title: "Return Library Books",
-      description: "3 books are due today",
-      category: "personal",
-      deadline: "2026-01-24",
-      time: "17:00",
-      priority: "low",
-      status: "unfinished",
-      createdAt: "2023-10-01"
-    }
-  ]);
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
 
   const [filter, setFilter] = useState<'all' | 'pending' | 'finished' | 'unfinished'>('all');
   const [newTask, setNewTask] = useState({
@@ -173,14 +108,7 @@ export default function Tasks() {
   // Task management functions
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
-    const task: Task = {
-      id: tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1,
-      ...newTask,
-      status: 'pending',
-      createdAt: getTodayDate()
-    };
-    
-    setTasks([...tasks, task]);
+    addTaskMutation.mutate(newTask);
     setNewTask({
       title: '',
       description: '',
@@ -191,21 +119,17 @@ export default function Tasks() {
     });
   };
 
-  const markTaskAsDone = (id: number) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, status: 'finished' } : task
-    ));
+  const markTaskAsDone = (id: string) => {
+    updateStatusMutation.mutate({ id, status: 'finished' });
   };
 
-  const markTaskAsPending = (id: number) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, status: 'pending' } : task
-    ));
+  const markTaskAsPending = (id: string) => {
+    updateStatusMutation.mutate({ id, status: 'pending' });
   };
 
-  const deleteTask = (id: number) => {
+  const deleteTask = (id: string) => {
     if (window.confirm('Are you sure you want to delete this task?')) {
-      setTasks(tasks.filter(task => task.id !== id));
+      deleteTaskMutation.mutate(id);
     }
   };
 
@@ -244,6 +168,22 @@ export default function Tasks() {
       default: return <Square className="w-5 h-5 text-gray-400" />;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
+        Loading your tasks...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-600">
+        Couldn't load your tasks.
+      </div>
+    );
+  }
 
   return (
     <>

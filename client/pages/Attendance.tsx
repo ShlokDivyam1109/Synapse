@@ -1,8 +1,8 @@
 import { CheckCircle, AlertCircle, TrendingUp, Calendar, Clock, Target, BarChart3 } from "lucide-react";
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface AttendanceData {
-  id: number;
+  id: string;
   code: string;
   title: string;
   credits: number;
@@ -15,100 +15,36 @@ interface AttendanceData {
   status: "good" | "warning" | "critical";
 }
 
+async function fetchAttendance(): Promise<AttendanceData[]> {
+  const res = await fetch("/api/attendance", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load attendance");
+  const data = await res.json();
+  return data.attendance.map((a: any) => ({ ...a, id: a._id }));
+}
+
 export default function Attendance() {
-  const [attendanceData] = useState<AttendanceData[]>([
-    {
-      id: 1,
-      code: "LAL101",
-      title: "INTRODUCTION TO FINANCE",
-      credits: 1,
-      type: "Liberal Art",
-      faculty: "Dr. Rekha Ravindran",
-      totalClasses: 12,
-      attendedClasses: 10,
-      percentage: 83.3,
-      lastUpdated: "07 Jan, 2026",
-      status: "good"
-    },
-    {
-      id: 2,
-      code: "LAL224",
-      title: "INTRODUCTION TO POSTCOLONIAL LITERATURE",
-      credits: 2,
-      type: "Liberal Art",
-      faculty: "Dr. Sruthi Vinayan",
-      totalClasses: 18,
-      attendedClasses: 6,
-      percentage: 33.3,
-      lastUpdated: "07 Jan, 2026",
-      status: "critical"
-    },
-    {
-      id: 3,
-      code: "LAL249",
-      title: "INTRODUCTION TO UNDERSTANDING PSYCHOLOGICAL...",
-      credits: 2,
-      type: "Liberal Art",
-      faculty: "Dr. Eslavath Rajkumar",
-      totalClasses: 18,
-      attendedClasses: 15,
-      percentage: 83.3,
-      lastUpdated: "07 Jan, 2026",
-      status: "good"
-    },
-    {
-      id: 4,
-      code: "NCN102",
-      title: "National Sports Organization",
-      credits: 2,
-      type: "Non-graded",
-      faculty: "Dr. Pawan Kumar Mishra",
-      totalClasses: 9,
-      attendedClasses: 8,
-      percentage: 88.9,
-      lastUpdated: "07 Jan, 2026",
-      status: "good"
-    },
-    {
-      id: 5,
-      code: "CSL253",
-      title: "THEORY OF COMPUTATION",
-      credits: 4,
-      type: "Program Core",
-      faculty: "Dr. Rishi Ranjan Singh",
-      totalClasses: 24,
-      attendedClasses: 18,
-      percentage: 75.0,
-      lastUpdated: "07 Jan, 2026",
-      status: "warning"
-    },
-    {
-      id: 6,
-      code: "CSL251",
-      title: "COMPUTER ORGANIZATION AND ARCHITECTURE",
-      credits: 4,
-      type: "Program Core",
-      faculty: "Dr. S K Subidh Ali",
-      totalClasses: 24,
-      attendedClasses: 22,
-      percentage: 91.7,
-      lastUpdated: "07 Jan, 2026",
-      status: "good"
-    },
-    {
-      id: 7,
-      code: "CSL252",
-      title: "DESIGN AND ANALYSIS OF ALGORITHMS",
-      credits: 4,
-      type: "Program Core",
-      faculty: "Dr. Vinod Kumar Reddy",
-      totalClasses: 24,
-      attendedClasses: 16,
-      percentage: 66.7,
-      lastUpdated: "07 Jan, 2026",
-      status: "warning"
-    }
-  ]);
+  const { data: attendanceData = [], isLoading, error } = useQuery({
+    queryKey: ["attendance"],
+    queryFn: fetchAttendance,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
+        Loading your attendance...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-600">
+        Couldn't load your attendance.
+      </div>
+    );
+  }
+
+
 
   const getStatusColor = (percentage: number) => {
     if (percentage >= 75) return "text-emerald-600";

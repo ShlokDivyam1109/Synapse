@@ -24,6 +24,8 @@ import hostelRulesRoutes from "./routes/hostelRules";
 import hostelNoticesRoutes from "./routes/hostelNotices";
 import complaintsRoutes from "./routes/complaints";
 import visitorsRoutes from "./routes/visitors";
+import tasksRoutes from "./routes/tasks";
+import attendanceRoutes from "./routes/attendance";
 
 export function createServer() {
   const app = express();
@@ -97,5 +99,7 @@ export function createServer() {
   app.use("/api/hostel-notices", requireAuth, hostelNoticesRoutes);
   app.use("/api/complaints", requireAuth, complaintsRoutes);
   app.use("/api/visitors", requireAuth, visitorsRoutes);
+  app.use("/api/tasks", requireAuth, tasksRoutes);
+  app.use("/api/attendance", requireAuth, attendanceRoutes);
   return app;
 }
