@@ -18,7 +18,6 @@ import {
   MessageSquare,
   Video,
   Brain,
-  Map,
   Search,
   Heart,
   Users,
@@ -1335,159 +1334,6 @@ function MentalWellnessTab() {
   );
 }
 
-// Tab 7: Maps & Navigation
-function MapsTab() {
-  const { data: centre } = useQuery({ queryKey: ["health-centre"], queryFn: fetchHealthCentre });
-  const { data: hospitalsData } = useQuery({ queryKey: ["hospitals"], queryFn: fetchHospitals });
-  const nearestHospital = hospitalsData?.[0]; // pre-sorted by distance on the server
-
-  return (
-    <div className="space-y-6">
-      {/* Under development: full multi-institute maps (per-institute coordinates/embeds) not built yet.
-          Showing a static IIT Bhilai preview for all institutes in the meantime. */}
-      <Card className="p-4 bg-amber-50 border-amber-200">
-        <p className="text-sm text-amber-800">
-          <strong>Maps is under development.</strong> This tab currently shows a preview using IIT Bhilai
-          as an example — it isn't yet specific to your institute.
-        </p>
-      </Card>
-
-      {/* Simple Google Maps Embed centered on IIT Bhilai 6th Lane Road */}
-      <Card className="p-0 overflow-hidden h-96">
-        <a 
-          href="https://www.google.com/maps/place/Indian+Institute+of+Technology+Bhilai/@21.2469983,81.3182281,17z/data=!3m1!4b1!4m6!3m5!1s0x3a28db65364103d5:0x9ca0815dc09dac5f!8m2!3d21.2469983!4d81.3182281!16s%2Fg%2F11g9pvz_n7?entry=ttu"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full h-full"
-        >
-          <iframe
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3937.4631089018458!2d81.31603930793509!3d21.246998262067454!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a28db65364103d5%3A0x9ca0815dc09dac5f!2sIndian%20Institute%20of%20Technology%20Bhilai!5e0!3m2!1sen!2sin!4v1769110968659!5m2!1sen!2sin"
-            width="100%"
-            height="100%"
-            style={{ border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            title="IIT Bhilai Campus Map - 6th Lane Road, Jevra"
-            className="hover:opacity-90 transition-opacity"
-          ></iframe>
-        </a>
-      </Card>
-
-      {/* Simple Campus Info */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <MapPin className="text-primary" size={20} />
-          IIT Bhilai - 6th Lane Road Campus
-        </h3>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-            <div>
-              <p className="font-semibold text-blue-800">IIT Bhilai Main Campus</p>
-              <p className="text-sm text-blue-600">6th Lane Road, Jevra, Chhattisgarh 491002</p>
-            </div>
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <div className="w-4 h-4 bg-blue-600 rounded-full"></div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-           <div className="text-center p-3 bg-gray-50 rounded-lg">
-  <p className="text-sm text-gray-600">Distance from</p>
-  <p className="font-semibold">Durg Railway Station</p>
-  <p className="text-lg font-bold text-primary">5.4 km</p>
-  <p className="text-xs text-gray-500 mb-3">(19 min drive)</p>
-
- <Button
-  className="w-full gap-2 mt-3 bg-primary text-white hover:bg-primary/90"
-  onClick={() =>
-    openDirectionsFromIIT("Durg Railway Station, Durg, Chhattisgarh")
-  }
->
-  <Navigation size={18} />
-  Get Directions
-</Button>
-</div>
-
-<div className="text-center p-3 bg-gray-50 rounded-lg">
-  <p className="text-sm text-gray-600">Distance from</p>
-  <p className="font-semibold">Raipur Airport</p>
-  <p className="text-lg font-bold text-primary">54 km</p>
-  <p className="text-xs text-gray-500 mb-3">(1 hr 27 min drive)</p>
-
-  <Button
-  className="w-full gap-2 mt-3 bg-primary text-white hover:bg-primary/90"
-  onClick={() =>
-    openDirectionsFromIIT("Swami Vivekananda Airport, Raipur, Chhattisgarh")
-  }
->
-  <Navigation size={18} />
-  Get Directions
-</Button>
-</div>
-          </div>
-          
-         <div className="flex flex-col gap-3 mt-2">
-  
-</div>
-        </div>
-      </Card>
-
-      {/* Navigation Options - Keep your existing cards */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Health Centre */}
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Stethoscope size={20} className="text-primary" />
-            {centre ? centre.name : "Health Centre"}
-          </h3>
-          {centre ? (
-            <>
-              <div className="space-y-3 mb-4 text-sm">
-                <p><strong>Address:</strong> {centre.address || "Not specified"}</p>
-              </div>
-              <Button 
-                className="w-full gap-2"
-                onClick={() => openGoogleMapsDirections(centre.mapsDestination || centre.address)}
-              >
-                <Navigation size={18} />
-                View on Map
-              </Button>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">Not yet configured for your institute.</p>
-          )}
-        </Card>
-
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Building2 size={20} className="text-primary" />
-            Nearest Hospital
-          </h3>
-          {nearestHospital ? (
-            <>
-              <div className="space-y-3 mb-4 text-sm">
-                <p><strong>Name:</strong> {nearestHospital.name}</p>
-                <p><strong>Distance:</strong> {nearestHospital.distance} km</p>
-                <p><strong>ETA:</strong> {nearestHospital.travelTime} by car</p>
-              </div>
-              <Button 
-                className="w-full gap-2"
-                onClick={() => openGoogleMapsDirections(`${nearestHospital.name}, ${nearestHospital.address}`)}
-              >
-                <Navigation size={18} />
-                Get Route
-              </Button>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">No hospitals configured for your institute yet.</p>
-          )}
-        </Card>
-      </div>
-    </div>
-  );
-}
-
 // ============ MAIN COMPONENT ============
 
 export default function Medical() {
@@ -1512,14 +1358,13 @@ export default function Medical() {
 
 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7 mb-8">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6 mb-8">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="doctors">Doctors</TabsTrigger>
             <TabsTrigger value="emergency">Emergency</TabsTrigger>
             <TabsTrigger value="hospitals">Hospitals</TabsTrigger>
             <TabsTrigger value="consultation">Consultation</TabsTrigger>
             <TabsTrigger value="mental">Wellness</TabsTrigger>
-            <TabsTrigger value="maps">Maps</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -1555,10 +1400,6 @@ export default function Medical() {
 
           <TabsContent value="mental">
             <MentalWellnessTab />
-          </TabsContent>
-
-          <TabsContent value="maps">
-            <MapsTab />
           </TabsContent>
         </Tabs>
       </div>
