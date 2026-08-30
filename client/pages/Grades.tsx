@@ -17,7 +17,6 @@ import {
   Hash,
   BookText,
   Users,
-  Globe,
   Target,
   Activity
 } from "lucide-react";
@@ -183,10 +182,6 @@ export default function Grades() {
   const totalCompletedCredits = completedSemesters.reduce((sum, sem) => 
     sum + sem.courses.filter(c => c.grade !== "In Progress").reduce((credits, course) => credits + course.credits, 0), 0);
   
-  const highestGradeCount = completedSemesters.reduce((count, sem) => {
-    return count + sem.courses.filter(c => c.grade === "A" || c.grade === "A+").length;
-  }, 0);
-
   const gradeDistribution = {
     "A/A+": completedSemesters.reduce((count, sem) => 
       count + sem.courses.filter(c => c.grade === "A" || c.grade === "A+").length, 0),

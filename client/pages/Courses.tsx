@@ -26,7 +26,7 @@ interface Semester {
 export default function Courses() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [program, setProgram] = useState<string | undefined>(undefined);
+  const [program] = useState<string | undefined>(undefined);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["courses", program],
@@ -204,7 +204,7 @@ export default function Courses() {
                 {/* Courses Grid */}
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {semester.courses.map((course, courseIndex) => (
+                    {semester.courses.map((course) => (
                       <div
                         key={course.id}
                         className="group relative border border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-white overflow-hidden"

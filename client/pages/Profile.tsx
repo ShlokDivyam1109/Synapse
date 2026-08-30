@@ -2,10 +2,10 @@ import { useAuth } from "../context/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  User, Mail, Phone, Droplets, MapPin, 
-  GraduationCap, Calendar, Shield, Heart, 
-  BookOpen, CreditCard, Users, AlertCircle
+import {
+  Mail, Phone, Droplets, MapPin,
+  GraduationCap, Calendar, Heart,
+  Users, AlertCircle
 } from "lucide-react";
 import { useState } from "react";
 

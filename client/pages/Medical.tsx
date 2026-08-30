@@ -3,12 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
-  Minus,
   Stethoscope,
   Phone,
   Calendar,
@@ -18,14 +16,12 @@ import {
   MessageSquare,
   Video,
   Brain,
-  Search,
   Heart,
   Users,
   Building2,
   Pill,
   Navigation,
   Plus,
-  X,
   ChevronRight,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -42,26 +38,6 @@ const openGoogleMapsDirections = (destination: string) => {
 
   window.open(mapsUrl, "_blank");
 };
-
-const openDirectionsFromIIT = (destination: string) => {
-  const origin = encodeURIComponent(IIT_BHILAI_ORIGIN);
-  const dest = encodeURIComponent(destination);
-
-  const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=driving`;
-  window.open(url, "_blank");
-};
-
-// Alternative with current location explicitly requested
-const openGoogleMapsWithCurrentLocation = (destination: string) => {
-  // This will prompt user to allow location access
-  const encodedDestination = encodeURIComponent(destination);
-  
-  // Construct URL that will ask for current location
-  const mapsUrl = `https://www.google.com/maps/dir//${encodedDestination}`;
-  
-  window.open(mapsUrl, '_blank');
-};
-
 
 type MentalHealthAPIResponse = {
   percentage: number;
@@ -450,11 +426,9 @@ function OverviewTab({ setActiveTab }: { setActiveTab: (tab: string) => void }) 
 
 // Tab 2: Doctors & Timings
 function DoctorsTab({
-  selectedDoctor,
   setSelectedDoctor,
   setActiveTab,
 }: {
-  selectedDoctor: any;
   setSelectedDoctor: (doc: any) => void;
   setActiveTab: (tab: string) => void;
 }) {
@@ -1118,17 +1092,6 @@ function MentalWellnessTab() {
     }
   };
 
-  const calculateScore = () => {
-    const values = Object.values(answers);
-    return values.length > 0 ? Math.round((values.reduce((a, b) => a + b, 0) / (values.length * 5)) * 100) : 0;
-  };
-
-  const getRecommendation = (score: number) => {
-    if (score >= 70) return { level: "High", text: "Please consult a healthcare professional", color: "red" };
-    if (score >= 40) return { level: "Moderate", text: "Consider talking to a counselor", color: "yellow" };
-    return { level: "Low", text: "You're doing well, continue self-care practices", color: "green" };
-  };
-
   if (showResults && aiResult) {
     return (
       <div className="space-y-6 max-w-2xl mx-auto">
@@ -1374,7 +1337,6 @@ export default function Medical() {
 
           <TabsContent value="doctors">
  <DoctorsTab
-  selectedDoctor={selectedDoctor}
   setSelectedDoctor={setSelectedDoctor}
   setActiveTab={setActiveTab}
 />

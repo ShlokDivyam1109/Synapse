@@ -25,29 +25,6 @@ import {
   ChevronLeft
 } from "lucide-react";
 
-// Helper function to convert 12-hour time to 24-hour format
-const convertTo24Hour = (timeStr) => {
-  // If time already has AM/PM
-  if (timeStr.includes('AM') || timeStr.includes('PM')) {
-    const [time, modifier] = timeStr.split(' ');
-    let [hours, minutes] = time.split(':');
-    
-    if (hours === '12') {
-      hours = '00';
-    }
-    
-    if (modifier === 'PM') {
-      hours = parseInt(hours, 10) + 12;
-    }
-    
-    return `${hours.toString().padStart(2, '0')}:${minutes}:00`;
-  }
-  
-  // If time is already in 24-hour format or doesn't have AM/PM
-  const [hours, minutes] = timeStr.split(':');
-  return `${hours.padStart(2, '0')}:${minutes}:00`;
-};
-
 interface Notice {
   _id: string;
   title: string;

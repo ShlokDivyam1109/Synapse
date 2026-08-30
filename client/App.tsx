@@ -13,6 +13,7 @@ import Attendance from "./pages/Attendance";
 import Grades from "./pages/Grades";
 import Notices from "./pages/Notices";
 import Tasks from "./pages/Tasks";
+import NotFound from "./pages/NotFound";
 
 import Layout from "@/components/Layout";
 
@@ -58,9 +59,12 @@ const App = () => (
                 <Route path="/profile" element={<Profile />} />
 
               </Route>
+
+              {/* Authenticated but no matching route */}
+              <Route path="*" element={<NotFound />} />
             </Route>
 
-            {/* Fallback */}
+            {/* Unauthenticated fallback */}
             <Route path="*" element={<Navigate to="/login" replace />} />
 
           </Routes>
