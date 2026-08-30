@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { Course } from "../models/Course";
 import { Enrollment } from "../models/Enrollment";
+import { semesterSortKey } from "../lib/semester";
 
 const router = Router();
 
@@ -38,7 +39,7 @@ router.get("/", async (req, res) => {
   const query: Record<string, unknown> = { instituteId: req.user!.instituteId };
   if (program) query.program = program;
 
-  const courses = await Course.find(query).sort({ semesterNumber: -1 });
+  const courses = await Course.find(query);
 
   const myEnrollments = await Enrollment.find({ userId: req.user!.userId });
   const enrolledCourseIds = new Set(myEnrollments.map((e) => e.courseId.toString()));
@@ -64,7 +65,13 @@ router.get("/", async (req, res) => {
     });
   }
 
-  res.json({ semesters: Array.from(bySemester.values()) });
+  // Newest semester first, ordered correctly within an academic year (M before W)
+  // regardless of any stale semesterNumber value on the underlying documents.
+  const semesters = Array.from(bySemester.values()).sort(
+    (a, b) => semesterSortKey(b.name) - semesterSortKey(a.name),
+  );
+
+  res.json({ semesters });
 });
 
 // POST /api/courses — admin only: add a course to the catalog.
