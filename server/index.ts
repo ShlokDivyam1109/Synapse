@@ -19,13 +19,24 @@ import appointmentsRoutes from "./routes/appointments";
 export function createServer() {
   const app = express();
 
-  // Connect to MongoDB once per warm container (guarded internally).
-  connectDB().catch((err) => {
-    console.error("MongoDB connection error:", err.message);
+  app.use(cors({ origin: true, credentials: true }));
+
+  // Every request waits for the (cached, reused-on-warm-containers) DB connection
+  // before reaching any route. Without this, a cold serverless invocation can let
+  // a route's query run before the connection exists — Mongoose then queues
+  // ("buffers") that query and only fails after a 10s timeout instead of
+  // immediately. Failing fast here with a 503 is far more diagnosable.
+  app.use(async (_req, res, next) => {
+    try {
+      await connectDB();
+      next();
+    } catch (err) {
+      console.error("MongoDB connection error:", (err as Error).message);
+      res.status(503).json({ error: "Database unavailable, please try again shortly" });
+    }
   });
 
   // Middleware
-  app.use(cors({ origin: true, credentials: true }));
   app.use(express.json());
 
   // serverless-http can pre-populate req.body as a raw Buffer before Express's
