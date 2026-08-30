@@ -19,22 +19,12 @@ interface User {
   dateOfBirth?: string;
   guardianName?: string;
   emergencyContact?: string;
-}
-
-interface SignupPayload {
-  name: string;
-  email: string;
-  password: string;
-  instituteId: string;
-  studentId?: string;
-  department?: string;
-  year?: string;
+  avatarUrl?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
-  signup: (payload: SignupPayload) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -82,25 +72,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const signup = async (payload: SignupPayload) => {
-    try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        return { success: false, message: data.error || "Signup failed" };
-      }
-      setUser(normalizeUser(data.user));
-      return { success: true, message: "Account created" };
-    } catch {
-      return { success: false, message: "Network error, please try again" };
-    }
-  };
-
   const logout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
@@ -111,7 +82,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <AuthContext.Provider
-      value={{ user, login, signup, logout, isAuthenticated: !!user, isLoading }}
+      value={{ user, login, logout, isAuthenticated: !!user, isLoading }}
     >
       {children}
     </AuthContext.Provider>
@@ -138,6 +109,7 @@ function normalizeUser(raw: any): User {
     dateOfBirth: raw.dateOfBirth,
     guardianName: raw.guardianName,
     emergencyContact: raw.emergencyContact,
+    avatarUrl: raw.avatarUrl,
   };
 }
 

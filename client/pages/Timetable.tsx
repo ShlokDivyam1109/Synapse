@@ -143,14 +143,6 @@ export default function Timetable() {
             ))}
           </div>
         )}
-
-        <Card className="p-6 bg-blue-50 border-blue-200">
-          <h3 className="font-semibold text-blue-900 mb-2">Managing your schedule</h3>
-          <p className="text-sm text-blue-800">
-            Enroll or unenroll from courses on the Courses page — your timetable updates automatically
-            to match.
-          </p>
-        </Card>
       </div>
     </>
   );

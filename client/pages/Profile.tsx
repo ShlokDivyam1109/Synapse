@@ -41,11 +41,13 @@ export default function Profile() {
         <div className="lg:col-span-1 space-y-6">
           <Card className="p-8 text-center">
           <Avatar className="w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden">
-  <AvatarImage 
-    src="/Adarsh%20Satyam.jpeg"
-    alt={user.name}
-    className="w-full h-full object-cover object-[50%_25%]"
-  />
+  {user.avatarUrl && (
+    <AvatarImage 
+      src={user.avatarUrl}
+      alt={user.name}
+      className="w-full h-full object-cover object-[50%_25%]"
+    />
+  )}
   <AvatarFallback className="text-4xl bg-gradient-to-br from-gray-200 to-gray-300">
     {user.name.charAt(0)}
   </AvatarFallback>

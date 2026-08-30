@@ -21,6 +21,7 @@ const UserSchema = new Schema({
   dateOfBirth: String,
   guardianName: String,
   emergencyContact: String,
+  avatarUrl: String,
   hostelRoomId: { type: Types.ObjectId, ref: "HostelRoom", default: null },
   createdAt: { type: Date, default: Date.now },
 });
