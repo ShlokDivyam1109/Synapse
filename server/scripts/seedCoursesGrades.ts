@@ -4,6 +4,7 @@ import { Institute } from "../models/Institute";
 import { User } from "../models/User";
 import { Course } from "../models/Course";
 import { Grade } from "../models/Grade";
+import { Enrollment } from "../models/Enrollment";
 
 async function seed() {
   const uri = process.env.MONGODB_URI;
@@ -21,6 +22,9 @@ async function seed() {
         credits: 1,
         faculty: "Dr. Rekha Ravindran",
         lastUpdated: "07 Jan, 2026",
+        day: "Monday",
+        time: "14:30 - 15:30",
+        room: "L-209",
       },
       completed: {
         code: "LAL221",
@@ -30,6 +34,9 @@ async function seed() {
         faculty: "Dr. Sruthi Vinayan",
         lastUpdated: "01 Aug, 2025",
         grade: "A-",
+        day: "Wednesday",
+        time: "09:30 - 10:30",
+        room: "L-208",
       },
     },
     {
@@ -42,6 +49,9 @@ async function seed() {
         credits: 2,
         faculty: "Dr. Sruthi Vinayan",
         lastUpdated: "07 Jan, 2026",
+        day: "Monday",
+        time: "12:30 - 13:30",
+        room: "L-208",
       },
       completed: {
         code: "LAL100",
@@ -51,6 +61,9 @@ async function seed() {
         faculty: "Dr. Anubhav Pradhan",
         lastUpdated: "01 Aug, 2025",
         grade: "A",
+        day: "Tuesday",
+        time: "09:30 - 10:30",
+        room: "L-101",
       },
     },
   ];
@@ -72,7 +85,7 @@ async function seed() {
     }
 
     // ---- Course catalog entries (shown on the Courses page, shared institute-wide) ----
-    await Course.findOneAndUpdate(
+    const inProgressCourse = await Course.findOneAndUpdate(
       {
         instituteId: institute._id,
         code: t.inProgress.code,
@@ -89,8 +102,11 @@ async function seed() {
         credits: t.inProgress.credits,
         faculty: t.inProgress.faculty,
         lastUpdated: t.inProgress.lastUpdated,
+        day: t.inProgress.day,
+        time: t.inProgress.time,
+        room: t.inProgress.room,
       },
-      { upsert: true },
+      { upsert: true, new: true },
     );
 
     await Course.findOneAndUpdate(
@@ -110,6 +126,9 @@ async function seed() {
         credits: t.completed.credits,
         faculty: t.completed.faculty,
         lastUpdated: t.completed.lastUpdated,
+        day: t.completed.day,
+        time: t.completed.time,
+        room: t.completed.room,
       },
       { upsert: true },
     );
@@ -155,6 +174,21 @@ async function seed() {
         type: t.completed.type,
         credits: t.completed.credits,
         grade: t.completed.grade,
+      },
+      { upsert: true },
+    );
+
+    // ---- Enrollment: links this specific admin to the in-progress course, which is
+    // what makes it show up on THEIR timetable specifically (and no one else's). The
+    // completed course is from a past semester and deliberately isn't enrolled here —
+    // a finished course shouldn't occupy a slot on the live weekly timetable.
+    await Enrollment.findOneAndUpdate(
+      { userId: admin._id, courseId: inProgressCourse!._id },
+      {
+        instituteId: institute._id,
+        userId: admin._id,
+        courseId: inProgressCourse!._id,
+        semesterName: IN_PROGRESS_SEMESTER.name,
       },
       { upsert: true },
     );

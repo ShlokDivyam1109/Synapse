@@ -17,6 +17,8 @@ import medicalStoresRoutes from "./routes/medicalStores";
 import appointmentsRoutes from "./routes/appointments";
 import coursesRoutes from "./routes/courses";
 import gradesRoutes from "./routes/grades";
+import enrollmentsRoutes from "./routes/enrollments";
+import timetableRoutes from "./routes/timetable";
 import hostelRoomRoutes from "./routes/hostelRoom";
 import hostelRulesRoutes from "./routes/hostelRules";
 import hostelNoticesRoutes from "./routes/hostelNotices";
@@ -88,6 +90,8 @@ export function createServer() {
   app.use("/api/appointments", requireAuth, appointmentsRoutes);
   app.use("/api/courses", requireAuth, coursesRoutes);
   app.use("/api/grades", requireAuth, gradesRoutes);
+  app.use("/api/enrollments", requireAuth, enrollmentsRoutes);
+  app.use("/api/timetable", requireAuth, timetableRoutes);
   app.use("/api/hostel-room", requireAuth, hostelRoomRoutes);
   app.use("/api/hostel-rules", requireAuth, hostelRulesRoutes);
   app.use("/api/hostel-notices", requireAuth, hostelNoticesRoutes);

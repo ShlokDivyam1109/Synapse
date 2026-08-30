@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { Course } from "../models/Course";
+import { Enrollment } from "../models/Enrollment";
 
 const router = Router();
 
@@ -14,6 +15,9 @@ const courseBodySchema = z.object({
   credits: z.number(),
   faculty: z.string().min(1),
   lastUpdated: z.string().optional(),
+  day: z.enum(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]),
+  time: z.string().min(1),
+  room: z.string().min(1),
 });
 
 function requireAdmin(req: any, res: any, next: any) {
@@ -25,7 +29,9 @@ function requireAdmin(req: any, res: any, next: any) {
 
 // GET /api/courses — instituteId-scoped, optional ?program= filter.
 // Grouped server-side into the { name, program, courses: [...] } shape the frontend
-// already renders, sorted newest semester first (matches the original mock order).
+// already renders, sorted newest semester first. Each course carries an `enrolled`
+// flag for the current user, driven by a single query against their own Enrollment
+// records — never trust a client-supplied enrolled state.
 router.get("/", async (req, res) => {
   const { program } = req.query as Record<string, string>;
 
@@ -34,6 +40,9 @@ router.get("/", async (req, res) => {
 
   const courses = await Course.find(query).sort({ semesterNumber: -1 });
 
+  const myEnrollments = await Enrollment.find({ userId: req.user!.userId });
+  const enrolledCourseIds = new Set(myEnrollments.map((e) => e.courseId.toString()));
+
   const bySemester = new Map<string, { name: string; program: string; courses: any[] }>();
   for (const c of courses) {
     const key = `${c.semesterName}::${c.program}`;
@@ -41,12 +50,17 @@ router.get("/", async (req, res) => {
       bySemester.set(key, { name: c.semesterName, program: c.program, courses: [] });
     }
     bySemester.get(key)!.courses.push({
+      id: c._id,
       code: c.code,
       title: c.title,
       type: c.type,
       credits: c.credits,
       faculty: c.faculty,
       lastUpdated: c.lastUpdated,
+      day: c.day,
+      time: c.time,
+      room: c.room,
+      enrolled: enrolledCourseIds.has(c._id.toString()),
     });
   }
 

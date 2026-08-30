@@ -15,6 +15,16 @@ const CourseSchema = new Schema({
   credits: { type: Number, required: true },
   faculty: { type: String, required: true },
   lastUpdated: { type: String, default: "" },
+  // Weekly schedule slot for this course offering. A course has one fixed slot per
+  // semester in this model (single-section courses) — every student enrolled in it
+  // meets at the same day/time/room. Multi-section scheduling is out of scope for now.
+  day: {
+    type: String,
+    enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+    required: true,
+  },
+  time: { type: String, required: true }, // e.g. "14:30 - 15:30"
+  room: { type: String, required: true },
 });
 
 CourseSchema.index({ instituteId: 1, semesterNumber: 1 });

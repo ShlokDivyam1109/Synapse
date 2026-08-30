@@ -1,15 +1,20 @@
 import { Search, BookOpen, X } from "lucide-react";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 
 interface Course {
+  id: string;
   code: string;
   title: string;
   type: string;
   credits: number | string;
   faculty: string;
   lastUpdated: string;
+  day: string;
+  time: string;
+  room: string;
+  enrolled: boolean;
 }
 
 interface Semester {
@@ -35,6 +40,32 @@ export default function Courses() {
   });
 
   const semesters: Semester[] = data?.semesters ?? [];
+
+  const queryClient = useQueryClient();
+
+  const enrollMutation = useMutation({
+    mutationFn: async ({ courseId, enrolled }: { courseId: string; enrolled: boolean }) => {
+      const res = enrolled
+        ? await fetch(`/api/enrollments/${courseId}`, { method: "DELETE", credentials: "include" })
+        : await fetch("/api/enrollments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ courseId }),
+          });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to update enrollment");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      // A course's enrolled state changing also changes what the Timetable shows,
+      // since Timetable is derived directly from enrollments — refresh both.
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
+      queryClient.invalidateQueries({ queryKey: ["timetable"] });
+    },
+  });
 
   const filteredSemesters = semesters.map(semester => ({
     ...semester,
@@ -201,7 +232,7 @@ export default function Courses() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {semester.courses.map((course, courseIndex) => (
                       <div
-                        key={courseIndex}
+                        key={course.id}
                         className="group relative border border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-white overflow-hidden"
                       >
                         {/* Gradient background effect */}
@@ -283,10 +314,32 @@ export default function Courses() {
                               </div>
                               <p className="font-medium text-gray-900 text-sm">{course.lastUpdated}</p>
                             </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 text-gray-500">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                                <span className="text-xs font-medium uppercase tracking-wider">Schedule</span>
+                              </div>
+                              <p className="font-medium text-gray-900 text-sm">
+                                {course.day}, {course.time} · {course.room}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                        
-                       
+
+                        <button
+                          onClick={() =>
+                            enrollMutation.mutate({ courseId: course.id, enrolled: course.enrolled })
+                          }
+                          disabled={enrollMutation.isPending}
+                          className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 ${
+                            course.enrolled
+                              ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:opacity-90"
+                          }`}
+                        >
+                          {course.enrolled ? "Unenroll" : "Enroll"}
+                        </button>
+
                       </div>
                     ))}
                   </div>
