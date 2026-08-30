@@ -15,6 +15,8 @@ import doctorsRoutes from "./routes/doctors";
 import hospitalsRoutes from "./routes/hospitals";
 import medicalStoresRoutes from "./routes/medicalStores";
 import appointmentsRoutes from "./routes/appointments";
+import coursesRoutes from "./routes/courses";
+import gradesRoutes from "./routes/grades";
 
 export function createServer() {
   const app = express();
@@ -79,5 +81,7 @@ export function createServer() {
   app.use("/api/hospitals", requireAuth, hospitalsRoutes);
   app.use("/api/medical-stores", requireAuth, medicalStoresRoutes);
   app.use("/api/appointments", requireAuth, appointmentsRoutes);
+  app.use("/api/courses", requireAuth, coursesRoutes);
+  app.use("/api/grades", requireAuth, gradesRoutes);
   return app;
 }

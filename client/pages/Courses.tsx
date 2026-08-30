@@ -1,5 +1,6 @@
 import { Search, BookOpen, X } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 
 interface Course {
@@ -20,280 +21,20 @@ interface Semester {
 export default function Courses() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const semesters: Semester[] = [
-    {
-      name: "2025-26-W",
-      program: "B.Tech Computer Science and Engineering",
-      courses: [
-        {
-          code: "LAL101",
-          title: "INTRODUCTION TO FINANCE",
-          type: "Liberal Art",
-          credits: 1,
-          faculty: "Dr. Rekha Ravindran",
-          lastUpdated: "07 Jan, 2026"
-        },
-        {
-          code: "LAL224",
-          title: "INTRODUCTION TO POSTCOLONIAL LITERATURE",
-          type: "Liberal Art",
-          credits: 2,
-          faculty: "Dr. Sruthi Vinayan",
-          lastUpdated: "07 Jan, 2026"
-        },
-        {
-          code: "LAL249",
-          title: "INTRODUCTION TO UNDERSTANDING PSYCHOLOGICAL...",
-          type: "Liberal Art",
-          credits: 2,
-          faculty: "Dr. Eslavath Rajkumar",
-          lastUpdated: "07 Jan, 2026"
-        },
-        {
-          code: "NCN102",
-          title: "National Sports Organization",
-          type: "Non-graded",
-          credits: 2,
-          faculty: "Dr. Pawan Kumar Mishra",
-          lastUpdated: "07 Jan, 2026"
-        },
-        {
-          code: "CSL253",
-          title: "THEORY OF COMPUTATION",
-          type: "Program Core",
-          credits: 4,
-          faculty: "Dr. Rishi Ranjan Singh",
-          lastUpdated: "07 Jan, 2026"
-        },
-        {
-          code: "CSL251",
-          title: "COMPUTER ORGANIZATION AND ARCHITECTURE",
-          type: "Program Core",
-          credits: 4,
-          faculty: "Dr. S K Subidh Ali",
-          lastUpdated: "07 Jan, 2026"
-        },
-        {
-          code: "CSL252",
-          title: "DESIGN AND ANALYSIS OF ALGORITHMS",
-          type: "Program Core",
-          credits: 4,
-          faculty: "Dr. Vinod Kumar Reddy",
-          lastUpdated: "07 Jan, 2026"
-        }
-      ]
-    },
-    {
-      name: "2025-26-M",
-      program: "B.Tech Computer Science and Engineering",
-      courses: [
-        {
-          code: "LAL100",
-          title: "INTRODUCTION TO COMMUNICATION SKILLS",
-          type: "Institute Core",
-          credits: 2,
-          faculty: "Dr. Anubhav Pradhan",
-          lastUpdated: "01 Aug, 2025"
-        },
-        {
-          code: "LAL221",
-          title: "INDIAN WRITING IN ENGLISH",
-          type: "Liberal Art",
-          credits: 2,
-          faculty: "Dr. Sruthi Vinayan",
-          lastUpdated: "01 Aug, 2025"
-        },
-        {
-          code: "NCN102",
-          title: "National Sports Organization",
-          type: "Non-graded",
-          credits: 1,
-          faculty: "Dr. Pawan Kumar Mishra",
-          lastUpdated: "01 Aug, 2025"
-        },
-        {
-          code: "CSL202",
-          title: "DATA STRUCTURES",
-          type: "Program Core",
-          credits: 4,
-          faculty: "Dr. S K Subidh Ali",
-          lastUpdated: "01 Aug, 2025"
-        },
-        {
-          code: "CSL201",
-          title: "DISCRETE MATHEMATICS",
-          type: "Program Core",
-          credits: 4,
-          faculty: "Dr. Barun Gorain",
-          lastUpdated: "01 Aug, 2025"
-        },
-        {
-          code: "CSP203",
-          title: "SOFTWARE TOOLS & TECHNOLOGIES LAB",
-          type: "Program Core",
-          credits: 3,
-          faculty: "Dr. Baswade Anand Madhavrao",
-          lastUpdated: "01 Aug, 2025"
-        },
-        {
-          code: "MAL403",
-          title: "PROBABILITY AND STATISTICS",
-          type: "Program Linked",
-          credits: 4,
-          faculty: "Dr. Kuldeep Kumar Kataria",
-          lastUpdated: "01 Aug, 2025"
-        }
-      ]
-    },
-    {
-      name: "2024-25-W",
-      program: "B.Tech Computer Science and Engineering",
-      courses: [
-        {
-          code: "ECL101",
-          title: "BASIC ELECTRONICS ENGINEERING",
-          type: "Institute Core",
-          credits: 4,
-          faculty: "Dr. Manish Pandey",
-          lastUpdated: "27 Nov, 2024"
-        },
-        {
-          code: "CYP102",
-          title: "CHEMISTRY LAB",
-          type: "Institute Core",
-          credits: 1.5,
-          faculty: "Dr. Katchala Nanaji",
-          lastUpdated: "27 Nov, 2024"
-        },
-        {
-          code: "BML101",
-          title: "BIOLOGY FOR ENGINEERS",
-          type: "Institute Core",
-          credits: 3,
-          faculty: "Dr. Arun Kumar Upadhyay",
-          lastUpdated: "27 Nov, 2024"
-        },
-        {
-          code: "MEP102",
-          title: "DIGITAL FABRICATION",
-          type: "Institute Core",
-          credits: 3,
-          faculty: "Dr. Kaushik Bandyopadhyay",
-          lastUpdated: "27 Nov, 2024"
-        },
-        {
-          code: "MAL101",
-          title: "MATHEMATICS-II",
-          type: "Institute Core",
-          credits: 4,
-          faculty: "Dr. Asrifa Sultana",
-          lastUpdated: "27 Nov, 2024"
-        },
-        {
-          code: "EEL101",
-          title: "BASIC ELECTRICAL ENGINEERING",
-          type: "Institute Core",
-          credits: 4,
-          faculty: "Dr. Krishna Murari",
-          lastUpdated: "27 Nov, 2024"
-        },
-        {
-          code: "LAN103",
-          title: "PROFESSIONAL ETHICS",
-          type: "Non-graded",
-          credits: 1,
-          faculty: "Dr. Anindita Ghosh",
-          lastUpdated: "27 Nov, 2024"
-        },
-        {
-          code: "NCN102",
-          title: "National Sports Organization",
-          type: "Non-graded",
-          credits: 1,
-          faculty: "Dr. Mahavir Sharma",
-          lastUpdated: "27 Nov, 2024"
-        }
-      ]
-    },
-    {
-      name: "2024-25-M",
-      program: "B.Tech Computer Science and Engineering",
-      courses: [
-        {
-          code: "PHP102",
-          title: "PHYSICS LAB",
-          type: "Institute Core",
-          credits: 1.5,
-          faculty: "Dr. Sesha Pavan Kumar Vempati",
-          lastUpdated: "29 Jul, 2024"
-        },
-        {
-          code: "CYL100",
-          title: "APPLIED CHEMISTRY",
-          type: "Institute Core",
-          credits: 3,
-          faculty: "Dr. Arup Mukherjee",
-          lastUpdated: "29 Jul, 2024"
-        },
-        {
-          code: "CYL101",
-          title: "ENVIRONMENTAL SCIENCE",
-          type: "Institute Core",
-          credits: 1,
-          faculty: "Dr. Raghavender Medishetty",
-          lastUpdated: "29 Jul, 2024"
-        },
-        {
-          code: "CSL100",
-          title: "INTRODUCTION TO PROGRAMMING",
-          type: "Institute Core",
-          credits: 4.5,
-          faculty: "Dr. S K Subidh Ali",
-          lastUpdated: "29 Jul, 2024"
-        },
-        {
-          code: "MAL100",
-          title: "MATHEMATICS-I",
-          type: "Institute Core",
-          credits: 4,
-          faculty: "Dr. Arnab Patra",
-          lastUpdated: "29 Jul, 2024"
-        },
-        {
-          code: "PHL101",
-          title: "PHYSICS FOR ENGINEERS",
-          type: "Institute Core",
-          credits: 4,
-          faculty: "Dr. Mahavir Sharma",
-          lastUpdated: "29 Jul, 2024"
-        },
-        {
-          code: "LAN102",
-          title: "SPEAKING AND WRITING SKILLS",
-          type: "Non-graded",
-          credits: 2,
-          faculty: "Dr. Anubhav Pradhan",
-          lastUpdated: "29 Jul, 2024"
-        },
-        {
-          code: "NCN100",
-          title: "PRACTICES FOR COMPREHENSIVE WELLBEING",
-          type: "Non-graded",
-          credits: 1,
-          faculty: "Dr. Anubhav Pradhan",
-          lastUpdated: "29 Jul, 2024"
-        },
-        {
-          code: "NCN102",
-          title: "National Sports Organization",
-          type: "Non-graded",
-          credits: 1,
-          faculty: "Dr. Mahavir Sharma",
-          lastUpdated: "29 Jul, 2024"
-        }
-      ]
-    }
-  ];
+  const [program, setProgram] = useState<string | undefined>(undefined);
+
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["courses", program],
+    queryFn: () =>
+      fetch(`/api/courses${program ? `?program=${encodeURIComponent(program)}` : ""}`, {
+        credentials: "include",
+      }).then((r) => {
+        if (!r.ok) throw new Error("Failed to load courses");
+        return r.json();
+      }),
+  });
+
+  const semesters: Semester[] = data?.semesters ?? [];
 
   const filteredSemesters = semesters.map(semester => ({
     ...semester,
@@ -393,6 +134,25 @@ export default function Courses() {
 
           {/* Courses List */}
           <div className="space-y-12">
+            {isLoading && (
+              <p className="text-gray-600 text-center py-10">Loading courses…</p>
+            )}
+            {isError && (
+              <div className="text-center py-10">
+                <p className="text-red-600 mb-3">Failed to load courses.</p>
+                <button
+                  onClick={() => refetch()}
+                  className="px-4 py-2 bg-primary text-white rounded-md"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            {!isLoading && !isError && filteredSemesters.length === 0 && (
+              <p className="text-gray-600 text-center py-10">
+                {searchQuery ? "No courses match your search." : "No courses found."}
+              </p>
+            )}
             {filteredSemesters.map((semester, semesterIndex) => (
               <div key={semesterIndex} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 {/* Semester Header with Stats */}

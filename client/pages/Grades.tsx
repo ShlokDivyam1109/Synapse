@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { 
   BarChart3, 
   TrendingUp, 
@@ -34,68 +35,6 @@ const gradePoints = {
   "F": 0
 };
 
-// Course data for 3 semesters using your exact courses
-const semesterData = [
-  {
-    semester: 1,
-    name: "2024-25-M",
-    program: "B.Tech Computer Science and Engineering",
-    courses: [
-      { code: "PHP102", title: "PHYSICS LAB", type: "Institute Core", credits: 1.5, grade: "A-" },
-      { code: "CYL100", title: "APPLIED CHEMISTRY", type: "Institute Core", credits: 3, grade: "A" },
-      { code: "CYL101", title: "ENVIRONMENTAL SCIENCE", type: "Institute Core", credits: 1, grade: "A" },
-      { code: "CSL100", title: "INTRODUCTION TO PROGRAMMING", type: "Institute Core", credits: 4.5, grade: "A" },
-      { code: "MAL100", title: "MATHEMATICS-I", type: "Institute Core", credits: 4, grade: "A-" },
-      { code: "PHL101", title: "PHYSICS FOR ENGINEERS", type: "Institute Core", credits: 4, grade: "B" },
-      { code: "LAN102", title: "SPEAKING AND WRITING SKILLS", type: "Non-graded", credits: 2, grade: "A" },
-      { code: "NCN100", title: "PRACTICES FOR COMPREHENSIVE WELLBEING", type: "Non-graded", credits: 1, grade: "B" },
-      { code: "NCN102", title: "National Sports Organization", type: "Non-graded", credits: 1, grade: "A" }
-    ]
-  },
-  {
-    semester: 2,
-    name: "2024-25-W",
-    program: "B.Tech Computer Science and Engineering",
-    courses: [
-      { code: "ECL101", title: "BASIC ELECTRONICS ENGINEERING", type: "Institute Core", credits: 4, grade: "B" },
-      { code: "CYP102", title: "CHEMISTRY LAB", type: "Institute Core", credits: 1.5, grade: "A-" },
-      { code: "BML101", title: "BIOLOGY FOR ENGINEERS", type: "Institute Core", credits: 3, grade: "B" },
-      { code: "MEP102", title: "DIGITAL FABRICATION", type: "Institute Core", credits: 3, grade: "A-" },
-      { code: "MAL101", title: "MATHEMATICS-II", type: "Institute Core", credits: 4, grade: "A" },
-      { code: "EEL101", title: "BASIC ELECTRICAL ENGINEERING", type: "Institute Core", credits: 4, grade: "B" },
-      { code: "LAN103", title: "PROFESSIONAL ETHICS", type: "Non-graded", credits: 1, grade: "A" },
-      { code: "NCN102", title: "National Sports Organization", type: "Non-graded", credits: 1, grade: "B" }
-    ]
-  },
-  {
-    semester: 3,
-    name: "2025-26-M",
-    program: "B.Tech Computer Science and Engineering",
-    courses: [
-      { code: "LAL100", title: "INTRODUCTION TO COMMUNICATION SKILLS", type: "Institute Core", credits: 2, grade: "A" },
-      { code: "LAL221", title: "INDIAN WRITING IN ENGLISH", type: "Liberal Art", credits: 2, grade: "A-" },
-      { code: "NCN102", title: "National Sports Organization", type: "Non-graded", credits: 1, grade: "B" },
-      { code: "CSL202", title: "DATA STRUCTURES", type: "Program Core", credits: 4, grade: "A" },
-      { code: "CSL201", title: "DISCRETE MATHEMATICS", type: "Program Core", credits: 4, grade: "A-" },
-      { code: "CSP203", title: "SOFTWARE TOOLS & TECHNOLOGIES LAB", type: "Program Core", credits: 3, grade: "B" },
-      { code: "MAL403", title: "PROBABILITY AND STATISTICS", type: "Program Linked", credits: 4, grade: "A" }
-    ]
-  },
-  {
-    semester: 4,
-    name: "2025-26-W",
-    program: "B.Tech Computer Science and Engineering",
-    courses: [
-      { code: "LAL101", title: "INTRODUCTION TO FINANCE", type: "Liberal Art", credits: 1, grade: "In Progress" },
-      { code: "LAL224", title: "INTRODUCTION TO POSTCOLONIAL LITERATURE", type: "Liberal Art", credits: 2, grade: "In Progress" },
-      { code: "LAL249", title: "INTRODUCTION TO UNDERSTANDING PSYCHOLOGICAL...", type: "Liberal Art", credits: 2, grade: "In Progress" },
-      { code: "NCN102", title: "National Sports Organization", type: "Non-graded", credits: 2, grade: "In Progress" },
-      { code: "CSL253", title: "THEORY OF COMPUTATION", type: "Program Core", credits: 4, grade: "In Progress" },
-      { code: "CSL251", title: "COMPUTER ORGANIZATION AND ARCHITECTURE", type: "Program Core", credits: 4, grade: "In Progress" },
-      { code: "CSL252", title: "DESIGN AND ANALYSIS OF ALGORITHMS", type: "Program Core", credits: 4, grade: "In Progress" }
-    ]
-  }
-];
 
 // Calculate SGPA for a semester
 const calculateSGPA = (courses) => {
@@ -112,13 +51,14 @@ const calculateSGPA = (courses) => {
   return totalCredits > 0 ? (totalGradePoints / totalCredits).toFixed(2) : "0.00";
 };
 
-// Calculate CGPA across all completed semesters
-const calculateCGPA = () => {
+// Calculate CGPA across all completed courses (any course still "In Progress" is
+// excluded by its grade value, not by assuming a fixed number of completed semesters —
+// real transcript data won't always have exactly 3 finished semesters).
+const calculateCGPA = (semesterData) => {
   let totalCredits = 0;
   let totalGradePoints = 0;
-  
-  // Only include completed semesters (1-3)
-  semesterData.slice(0, 3).forEach(semester => {
+
+  semesterData.forEach(semester => {
     semester.courses.forEach(course => {
       if (course.grade !== "In Progress" && gradePoints[course.grade] !== undefined) {
         totalCredits += course.credits;
@@ -202,41 +142,59 @@ const getCourseIcon = (code) => {
 };
 
 export default function Grades() {
-  const [activeSemester, setActiveSemester] = useState(4); 
-  const [sgpaData, setSgpaData] = useState([]);
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["grades"],
+    queryFn: () =>
+      fetch("/api/grades", { credentials: "include" }).then((r) => {
+        if (!r.ok) throw new Error("Failed to load grades");
+        return r.json();
+      }),
+  });
+
+  const semesterData = data?.semesters ?? [];
+  const latestSemesterNumber = semesterData.length
+    ? semesterData[semesterData.length - 1].semester
+    : null;
+
+  const [activeSemester, setActiveSemester] = useState<number | null>(null);
+  const effectiveActiveSemester = activeSemester ?? latestSemesterNumber;
+
+  // A semester counts as "completed" when none of its courses are still "In Progress" —
+  // derived from the actual grade values fetched, rather than assuming a fixed number
+  // of finished semesters, since real transcript data won't always look like that.
+  const completedSemesters = semesterData.filter((sem) =>
+    sem.courses.every((c) => c.grade !== "In Progress"),
+  );
+
+  const sgpaData = completedSemesters.map(sem => ({
+    semester: sem.semester,
+    name: sem.name,
+    sgpa: calculateSGPA(sem.courses)
+  }));
   
-  useEffect(() => {
-    // Calculate SGPA for each completed semester
-    const sgpaValues = semesterData.slice(0, 3).map(sem => ({
-      semester: sem.semester,
-      name: sem.name,
-      sgpa: calculateSGPA(sem.courses)
-    }));
-    setSgpaData(sgpaValues);
-  }, []);
-  
-  const currentSemester = semesterData.find(sem => sem.semester === activeSemester);
-  const cgpa = calculateCGPA();
+  const currentSemester = semesterData.find(sem => sem.semester === effectiveActiveSemester);
+  const isCurrentSemesterInProgress = currentSemester?.courses.some(c => c.grade === "In Progress") ?? false;
+  const cgpa = calculateCGPA(completedSemesters);
   
   // Calculate statistics
-  const totalCompletedCourses = semesterData.slice(0, 3).reduce((sum, sem) => 
+  const totalCompletedCourses = completedSemesters.reduce((sum, sem) => 
     sum + sem.courses.filter(c => c.grade !== "In Progress").length, 0);
   
-  const totalCompletedCredits = semesterData.slice(0, 3).reduce((sum, sem) => 
+  const totalCompletedCredits = completedSemesters.reduce((sum, sem) => 
     sum + sem.courses.filter(c => c.grade !== "In Progress").reduce((credits, course) => credits + course.credits, 0), 0);
   
-  const highestGradeCount = semesterData.slice(0, 3).reduce((count, sem) => {
+  const highestGradeCount = completedSemesters.reduce((count, sem) => {
     return count + sem.courses.filter(c => c.grade === "A" || c.grade === "A+").length;
   }, 0);
 
   const gradeDistribution = {
-    "A/A+": semesterData.slice(0, 3).reduce((count, sem) => 
+    "A/A+": completedSemesters.reduce((count, sem) => 
       count + sem.courses.filter(c => c.grade === "A" || c.grade === "A+").length, 0),
-    "A-": semesterData.slice(0, 3).reduce((count, sem) => 
+    "A-": completedSemesters.reduce((count, sem) => 
       count + sem.courses.filter(c => c.grade === "A-").length, 0),
-    "B": semesterData.slice(0, 3).reduce((count, sem) => 
+    "B": completedSemesters.reduce((count, sem) => 
       count + sem.courses.filter(c => c.grade === "B").length, 0),
-    "B-": semesterData.slice(0, 3).reduce((count, sem) => 
+    "B-": completedSemesters.reduce((count, sem) => 
       count + sem.courses.filter(c => c.grade === "B-").length, 0),
   };
 
@@ -259,6 +217,23 @@ export default function Grades() {
           </p>
         </div>
         
+        {isLoading && (
+          <p className="text-gray-600 text-center py-16">Loading your grades…</p>
+        )}
+        {isError && (
+          <div className="text-center py-16">
+            <p className="text-red-600 mb-3">Failed to load grades.</p>
+            <button onClick={() => refetch()} className="px-4 py-2 bg-primary text-white rounded-md">
+              Retry
+            </button>
+          </div>
+        )}
+        {!isLoading && !isError && semesterData.length === 0 && (
+          <p className="text-gray-600 text-center py-16">No grades on record yet.</p>
+        )}
+
+        {!isLoading && !isError && currentSemester && (
+        <>
         {/* Overall Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
@@ -280,9 +255,9 @@ export default function Grades() {
             </div>
             <div className="flex items-end gap-2">
               <span className="text-4xl font-bold text-gray-900">
-                {activeSemester === 4 ? "In Progress" : calculateSGPA(currentSemester.courses)}
+                {isCurrentSemesterInProgress ? "In Progress" : calculateSGPA(currentSemester.courses)}
               </span>
-              {activeSemester !== 4 && <span className="text-gray-500 mb-1">/ 10.00</span>}
+              {!isCurrentSemesterInProgress && <span className="text-gray-500 mb-1">/ 10.00</span>}
             </div>
             <p className="text-sm text-gray-500 mt-2">{currentSemester.name}</p>
           </div>
@@ -307,7 +282,7 @@ export default function Grades() {
               <button
                 key={semester.semester}
                 onClick={() => setActiveSemester(semester.semester)}
-                className={`px-5 py-3 rounded-xl font-medium transition-all ${activeSemester === semester.semester 
+                className={`px-5 py-3 rounded-xl font-medium transition-all ${effectiveActiveSemester === semester.semester 
                   ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md' 
                   : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300 hover:border-blue-300'}`}
               >
@@ -319,7 +294,7 @@ export default function Grades() {
           <div className="flex items-center gap-2 mb-6">
             <Calendar className="w-5 h-5 text-blue-600" />
             <h2 className="text-xl font-bold text-gray-900">{currentSemester.name}</h2>
-            {activeSemester === 4 && (
+            {isCurrentSemesterInProgress && (
               <span className="ml-2 px-3 py-1 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 text-sm font-medium rounded-full">
                 Ongoing Semester
               </span>
@@ -394,7 +369,7 @@ export default function Grades() {
               </div>
               
               {/* Semester SGPA Summary */}
-              {activeSemester !== 4 && (
+              {!isCurrentSemesterInProgress && (
                 <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-gray-200">
                   <div className="flex items-center justify-between">
                     <div>
@@ -631,6 +606,8 @@ export default function Grades() {
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
     </>
