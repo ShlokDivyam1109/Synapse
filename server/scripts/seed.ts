@@ -7,6 +7,9 @@ import { HealthCentre } from "../models/HealthCentre";
 import { Doctor } from "../models/Doctor";
 import { Hospital } from "../models/Hospital";
 import { MedicalStore } from "../models/MedicalStore";
+import { HostelRoom } from "../models/HostelRoom";
+import { HostelRule } from "../models/HostelRule";
+import { HostelNotice } from "../models/HostelNotice";
 
 async function seed() {
   const uri = process.env.MONGODB_URI;
@@ -146,6 +149,54 @@ async function seed() {
       },
     ]);
     console.log("Seeded medical stores for IIT Bhilai");
+  }
+
+  const existingRules = await HostelRule.countDocuments({ instituteId: bhilai._id });
+  if (existingRules === 0) {
+    await HostelRule.insertMany([
+      { instituteId: bhilai._id, text: "Entry after 11 PM requires prior permission.", order: 1 },
+      { instituteId: bhilai._id, text: "Visitors are allowed only in common areas.", order: 2 },
+      { instituteId: bhilai._id, text: "Maintain cleanliness in rooms and corridors.", order: 3 },
+      { instituteId: bhilai._id, text: "Electric appliances require approval.", order: 4 },
+      { instituteId: bhilai._id, text: "Ragging is strictly prohibited.", order: 5 },
+    ]);
+    console.log("Seeded hostel rules for IIT Bhilai");
+  }
+
+  const existingHostelNotices = await HostelNotice.countDocuments({ instituteId: bhilai._id });
+  if (existingHostelNotices === 0) {
+    await HostelNotice.insertMany([
+      {
+        instituteId: bhilai._id,
+        title: "Fire Safety Drill",
+        description: "Mandatory fire safety drill for all hostel residents.",
+      },
+      {
+        instituteId: bhilai._id,
+        title: "Mess Menu Update",
+        description: "New mess menu will be applicable from next week.",
+      },
+    ]);
+    console.log("Seeded hostel notices for IIT Bhilai");
+  }
+
+  const existingRooms = await HostelRoom.countDocuments({ instituteId: bhilai._id });
+  let seededRoom = null;
+  if (existingRooms === 0) {
+    seededRoom = await HostelRoom.create({
+      instituteId: bhilai._id,
+      hostelName: "Aryabhatta Hostel",
+      roomNumber: "B-214",
+      floor: 2,
+      roomType: "Double",
+    });
+    console.log("Seeded a hostel room for IIT Bhilai");
+  }
+
+  // Assign the IIT Bhilai admin to the seeded room, purely so there's something to see
+  // when testing the Hostel Management page end-to-end.
+  if (seededRoom) {
+    await User.updateOne({ email: "admin@iitbhilai.ac.in" }, { hostelRoomId: seededRoom._id });
   }
 
   console.log("Seed complete.");
