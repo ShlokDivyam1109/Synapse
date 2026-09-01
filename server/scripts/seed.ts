@@ -184,18 +184,19 @@ async function seed() {
     console.log("Seeded hostel notices for IIT Bhilai");
   }
 
-  const existingRooms = await HostelRoom.countDocuments({ instituteId: bhilai._id });
-  let seededRoom = null;
-  if (existingRooms === 0) {
-    seededRoom = await HostelRoom.create({
+  // Upsert (not just create-once) so this room is always available to assign users to,
+  // even on re-runs of this script after the room already exists.
+  const seededRoom = await HostelRoom.findOneAndUpdate(
+    { instituteId: bhilai._id, hostelName: "Aryabhatta Hostel", roomNumber: "B-214" },
+    {
       instituteId: bhilai._id,
       hostelName: "Aryabhatta Hostel",
       roomNumber: "B-214",
       floor: 2,
       roomType: "Double",
-    });
-    console.log("Seeded a hostel room for IIT Bhilai");
-  }
+    },
+    { upsert: true, new: true },
+  );
 
   // Assign the IIT Bhilai admin to the seeded room, purely so there's something to see
   // when testing the Hostel Management page end-to-end.
