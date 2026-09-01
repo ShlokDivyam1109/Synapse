@@ -15,6 +15,19 @@ import { Enrollment } from "../models/Enrollment";
 import { Attendance } from "../models/Attendance";
 import { Task } from "../models/Task";
 
+// Same academic-calendar convention as server/lib/semester.ts: Monsoon (M) runs
+// roughly July-December, Winter (W) runs roughly January-June. Computed at seed
+// time rather than hardcoded, so demo data stays in the current semester (and
+// therefore visible on the Timetable) no matter when this script is run.
+function currentSemesterName(): string {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const isMonsoon = month >= 7;
+  const startYear = isMonsoon ? now.getFullYear() : now.getFullYear() - 1;
+  const endYearShort = ((startYear + 1) % 100).toString().padStart(2, "0");
+  return `${startYear}-${endYearShort}-${isMonsoon ? "M" : "W"}`;
+}
+
 async function seed() {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error("MONGODB_URI missing");
@@ -208,14 +221,13 @@ async function seed() {
   // Courses, Timetable, Attendance, and Tasks all have something real to show.
   const bhilaiAdmin = await User.findOne({ email: "admin@iitbhilai.ac.in" });
   if (bhilaiAdmin) {
-    const existingCourse = await Course.findOne({ instituteId: bhilai._id, code: "CSL253" });
-    const course =
-      existingCourse ??
-      (await Course.create({
+    const course = await Course.findOneAndUpdate(
+      { instituteId: bhilai._id, code: "CSL253" },
+      {
         instituteId: bhilai._id,
         program: "B.Tech",
         semesterNumber: 5,
-        semesterName: "2025-26-W",
+        semesterName: currentSemesterName(),
         code: "CSL253",
         title: "Theory of Computation",
         type: "Program Core",
@@ -225,7 +237,9 @@ async function seed() {
         day: "Monday",
         time: "14:30 - 15:30",
         room: "LT-3",
-      }));
+      },
+      { upsert: true, new: true },
+    );
 
     await Enrollment.findOneAndUpdate(
       { userId: bhilaiAdmin._id, courseId: course._id },

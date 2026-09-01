@@ -12,3 +12,16 @@ export function semesterSortKey(semesterName: string): number {
   const [, startYear, term] = match;
   return parseInt(startYear, 10) * 10 + (term === "M" ? 0 : 1);
 }
+
+// Derives "now" as a semester sort key, using the same academic-calendar convention
+// as semesterName itself: Monsoon (M) runs roughly July-December, Winter (W) runs
+// roughly January-June. There's no explicit "current semester" field anywhere in the
+// DB — this is intentional, since a hand-set flag would just be one more thing that
+// silently goes stale each semester. Deriving it from the real date never goes stale.
+export function currentSemesterSortKey(): number {
+  const now = new Date();
+  const month = now.getMonth() + 1; // 1-12
+  const isMonsoon = month >= 7;
+  const academicStartYear = isMonsoon ? now.getFullYear() : now.getFullYear() - 1;
+  return academicStartYear * 10 + (isMonsoon ? 0 : 1);
+}
