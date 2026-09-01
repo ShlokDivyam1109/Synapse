@@ -1,6 +1,6 @@
 # 🧠 Synapse – Smart Campus Management System
 
-Synapse is a modern, student-centric campus management web application designed to unify academic, administrative, hostel, and wellness-related services into a single platform.
+Synapse is a full-stack, student-centric campus management web application that unifies academic, administrative, hostel, and wellness-related services into a single platform. It supports **multiple institutes on one deployment** — each institute's data (courses, doctors, notices, hostel records, etc.) is fully isolated from every other institute's.
 
 A **special focus of Synapse is the Medical & Mental Wellness section**, ensuring students have timely access to health services, notices, and emotional well-being support alongside academics.
 
@@ -8,65 +8,75 @@ A **special focus of Synapse is the Medical & Mental Wellness section**, ensurin
 
 ## 👥 Team Members
 
-- Shlok Divyam 
-- Adarsh Satyam 
-- Kadali Gagan Venkata Asish  
- 
- 
+- Shlok Divyam
+- Adarsh Satyam
+- Kadali Gagan Venkata Asish
+
 ---
 
 ## 🌟 Major Features
 
+### 🔐 Authentication & Multi-Institute Support
+- Email/password login with JWT sessions (httpOnly cookie)
+- Every user belongs to an institute; nearly all data is scoped to that institute, so students at different institutes never see each other's doctors, notices, courses, etc.
+- Student and admin roles
+- Accounts are provisioned directly (via seed scripts or database entry) rather than public self-signup — this app assumes the institute's user data already exists
+
 ### 📚 Academic Management
-- Semester-wise course listing with credits and faculty
-- Credit visualization
-- Academic notices and schedules
+- Institute-wide course catalog, each course with a fixed weekly schedule slot (day/time/room)
+- Students self-enroll/unenroll in courses from the current semester only (past semesters are read-only)
+- **Timetable is fully derived from your enrollments** — no separately maintained schedule to fall out of sync; enroll or unenroll on the Courses page and your Timetable updates immediately
+- Personal grade transcript per student (SGPA/CGPA calculated from real grade data, not hardcoded)
+- Personal attendance record per course, with percentage computed from raw class counts
 
 ### 🏥 Medical & Mental Wellness (Special Focus)
-- Dedicated medical notices and alerts
-- Mental wellness self-assessment
-- Navigation to nearby hospitals and medical stores
-- Health camp and medical center announcements
+- Institute-scoped doctor directory with real appointment booking
+- Institute-scoped hospitals and medical stores directory
+- AI-powered mental wellness self-assessment (Google Gemini API, called through a secured serverless function — the API key never reaches the browser)
+- Google Meet integration for starting a video consultation session
 
 ### 🔔 Notices & Announcements
-- Academic, Exam, Placement, Medical, Hostel, Library, Finance notices
+- Academic, Exam, Placement, Medical, Hostel, Library, Finance categories
 - Priority levels: Urgent, High, Medium, Low
 - Category filters and search
 - Pinned notices
-- Detailed notice view with attachments
-- Read / unread tracking
+- Per-user read/unread tracking (persists across sessions, not just local state)
 
 ### 🏠 Hostel Management
-- Student, room, and roommate details
-- Hostel rules
-- Maintenance complaint system
-- Complaint tracking (Pending / Resolved)
-- Visitor approval and visitor logs
+- Room and roommate lookup (based on actual room assignment, supports any number of roommates)
+- Maintenance complaint system, scoped to your own complaints
+- Complaint status tracking (Pending / Resolved)
+- Visitor request and approval log
+- Hostel notices (reuses the main Notices system, filtered by category)
 
 ### ✅ Tasks & Reminders
-- Task creation with category, priority, date, and time
+- Fully personal — a user's tasks are never visible to anyone else, including admins
+- Task creation with category, priority, deadline date, and time
 - Pending / Finished / Unfinished states
-- Deadline-today highlighting
 - Productivity dashboard with stats
 
 ---
 
 ## 🛠️ Technologies Used
 
-### 🔵 Google Technologies
-- **Google Meet** – Video conferencing for medical consultations and mentoring  
--**Google Gemini API** – Mental wellness test and emotional health analysis (requires API key in `.env`)
-- **Google Maps API** – Navigation to nearby hospitals and medical stores  
-- **Google Chrome** – Development and testing  
-- **Google Fonts** – Typography  
-- **Material Design principles** – UI/UX inspiration  
+### Backend
+- **Express** (wrapped as a single serverless function via `serverless-http` for Netlify)
+- **MongoDB Atlas** with **Mongoose** for data modeling
+- **JWT** (httpOnly cookie) + **bcrypt** for authentication
+- **Zod** for request validation
 
-### ⚙️ Core Stack
-- React.js
-- TypeScript
+### Frontend
+- React.js + TypeScript
 - Vite
+- **TanStack Query** for server-state fetching, caching, and mutations
 - Tailwind CSS
 - Lucide React Icons
+
+### 🔵 Google Technologies
+- **Google Gemini API** – Mental wellness test and emotional health analysis (requires an API key, kept server-side only)
+- **Google Meet** – Video conferencing for medical consultations
+- **Google Fonts** – Typography
+- **Material Design principles** – UI/UX inspiration
 
 ---
 
@@ -76,23 +86,19 @@ A **special focus of Synapse is the Medical & Mental Wellness section**, ensurin
 - Node.js (v18+)
 - npm
 - Git
-- Windows PowerShell
+- A MongoDB Atlas cluster (free tier is enough) — see [Step 4](#step-4-set-up-environment-variables)
 
 ---
 
-### Step 1: Clone the Repository 
+### Step 1: Clone the Repository
 
-   git clone https://github.com/ShlokDivyam1109/Synapse.git
+    git clone https://github.com/ShlokDivyam1109/Synapse.git
 
 ---
 
 ### Step 2: Navigate to Project Directory
 
     cd Synapse
-
-(If your local folder name is different)
-
-    cd Desktop\SYNAPSE-CAMPUS-42D
 
 ---
 
@@ -102,65 +108,92 @@ A **special focus of Synapse is the Medical & Mental Wellness section**, ensurin
 
 ---
 
-### Step 4: Start Development Server
+### Step 4: Set up Environment Variables
+
+Create a `.env` file in the root directory (same level as `package.json`) with the following content:
+
+```env
+# MongoDB Atlas connection string
+MONGODB_URI=your_mongodb_connection_string_here
+
+# Long random string used to sign JWT session tokens
+JWT_SECRET=your_own_random_secret_here
+
+# Optional — customizes the /api/ping healthcheck response
+PING_MESSAGE="ping pong"
+
+# Required for the AI-powered mental wellness test
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Note: the `.env` file is excluded from Git (via `.gitignore`) for security. Get your Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey), and your MongoDB connection string from your [Atlas](https://www.mongodb.com/atlas) cluster's "Connect" dialog.
+
+⚠️ **Never commit real secrets.** Treat any value that's been pasted into a terminal, chat log, or screenshot as compromised — rotate it before going to production.
+
+---
+
+### Step 5: Seed the Database
+
+The app has no signup flow — accounts, institutes, and sample data are created by seed scripts. At minimum, run:
+
+    npm run seed
+
+This creates sample institutes and admin accounts (check `server/scripts/seed.ts` for the exact accounts/credentials it creates — change these before deploying publicly).
+
+Additional, optional seed scripts fill in more sample data for specific features:
+
+    npx tsx server/scripts/seedAcademicEvents.ts
+    npx tsx server/scripts/seedCoursesGrades.ts
+    npx tsx server/scripts/updateMyProfile.ts
+
+`updateMyProfile.ts` fills in profile details (phone, address, guardian info, etc.) for one specific account — open the file and edit the placeholder values with real data before running it.
+
+---
+
+### Step 6: Start Development Server
 
     npm run dev
 
 ---
 
-### Step 5: Set up Environment Variables
+### Step 7: Open in Browser
 
-Create a `.env` file in the root directory (same level as `package.json`) with the following content:
+The development server will start on an available port (typically `5173`, `3000`, or `8080`). Check your terminal output for the exact local URL.
 
-```env
-# Public variables
-VITE_PUBLIC_BUILDER_KEY=__BUILDER_PUBLIC_KEY__
-PING_MESSAGE="ping pong"
+---
 
-# Replace with your own Gemini API key
-GEMINI_API_KEY=your_gemini_api_key_here
+## ☁️ Deployment
 
-
-```
-
-Note: The .env file is excluded from Git (via .gitignore) for security. Get your Gemini API key from Google AI Studio.
-
-### Step 6: Open in Browser
-The development server will start on an available port (typically 5173, 3000, or 8080).
-
-Example URLs:
-
-http://localhost:5173/
-
-http://localhost:3000/
-
-http://localhost:8080/
-
-Check your terminal output for the exact local URL, then open it in your browser.
+This project is set up to deploy on **Netlify**:
+- The Vite client builds to `dist/spa`
+- The Express backend is wrapped as a single Netlify Function (`netlify/functions/api.ts`), so every backend route change only needs to happen once in `server/` — nothing is duplicated
+- `netlify.toml` redirects all `/api/*` requests to that function
+- Set `MONGODB_URI`, `JWT_SECRET`, and `GEMINI_API_KEY` as environment variables in your Netlify site settings (not just locally) before deploying
+- MongoDB Atlas Network Access needs to allow connections from anywhere (`0.0.0.0/0`), since Netlify Functions don't have a fixed outbound IP
 
 ---
 
 ## 🔧 Data Handling
-- Frontend uses mock data
-- React Hooks for state management
-- localStorage & sessionStorage for persistence
-- Backend-ready models for API integration
+
+- All data is persisted in **MongoDB Atlas** via Mongoose — nothing is hardcoded or stored in `localStorage`/`sessionStorage`
+- **TanStack Query** handles client-side data fetching, caching, and cache invalidation after mutations
+- Nearly every collection is scoped by `instituteId`, and personal data (tasks, grades, attendance, notices read-state) is additionally scoped by `userId` — enforced server-side on every request, never trusted from the client
+- Timetable has no independent storage at all; it's computed on each request from the user's current course enrollments
 
 ---
 
 ## 🔮 Future Enhancements
-- Backend + database integration
-- Authentication and role-based access
-- Admin dashboards
-- Medical appointment booking
-- Push notifications
-- Calendar sync
+
+- Admin dashboard UI for managing courses, doctors, hostel rooms, etc. (currently managed via seed scripts or direct database entry)
+- File upload support for notice attachments (currently metadata-only)
+- Real-time notice/task updates (currently fetch-on-load / fetch-on-action)
+- Password reset and email verification flows
+- Rate limiting on authentication routes
 
 ---
 
 ## 📌 Conclusion
-Synapse is a scalable, modular, and student-focused campus platform with a strong emphasis on **medical awareness, mental wellness, academics, and productivity**.
 
-Designed for hackathons and real-world campus deployment.
+Synapse is a scalable, modular, multi-institute campus platform with a strong emphasis on **medical awareness, mental wellness, academics, and productivity** — built on a real MongoDB-backed API, not mock data.
 
 ⭐ Star the repository if you like the project!
