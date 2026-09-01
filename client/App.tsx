@@ -58,10 +58,10 @@ const App = () => (
                 <Route path="/tasks" element={<Tasks />} />
                 <Route path="/profile" element={<Profile />} />
 
-              </Route>
+                {/* Authenticated but no matching route */}
+                <Route path="*" element={<NotFound />} />
 
-              {/* Authenticated but no matching route */}
-              <Route path="*" element={<NotFound />} />
+              </Route>
             </Route>
 
             {/* Unauthenticated fallback */}

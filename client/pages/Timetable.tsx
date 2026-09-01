@@ -106,9 +106,7 @@ export default function Timetable() {
 
         {!isLoading && !isError && totalClasses === 0 && (
           <Card className="p-8 text-center bg-gray-50">
-            <p className="text-muted-foreground">
-              You're not enrolled in any courses yet. Enroll from the Courses page to see your timetable here.
-            </p>
+            <p className="text-muted-foreground">No classes scheduled.</p>
           </Card>
         )}
 
