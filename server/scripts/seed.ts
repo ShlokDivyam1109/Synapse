@@ -276,6 +276,50 @@ async function seed() {
     console.log("Seeded course, enrollment, and attendance for IIT Bhilai admin");
   }
 
+  // Demo/reviewer account, shown on the login page. Plain student role, deliberately
+  // simple password since this is a public demo login, not a real user's account.
+  const existingMockUser = await User.findOne({ email: "mock@email.com" });
+  if (!existingMockUser) {
+    const passwordHash = await bcrypt.hash("mock", 10);
+    const mockUser = await User.create({
+      instituteId: bhilai._id,
+      name: "Mock Student",
+      email: "mock@email.com",
+      passwordHash,
+      role: "student",
+      studentId: "MOCK001",
+    });
+
+    if (seededRoom) {
+      await User.updateOne({ _id: mockUser._id }, { hostelRoomId: seededRoom._id });
+    }
+
+    const demoCourse = await Course.findOne({ instituteId: bhilai._id, code: "CSL253" });
+    if (demoCourse) {
+      await Enrollment.findOneAndUpdate(
+        { userId: mockUser._id, courseId: demoCourse._id },
+        { userId: mockUser._id, courseId: demoCourse._id, instituteId: bhilai._id },
+        { upsert: true },
+      );
+      await Attendance.findOneAndUpdate(
+        { userId: mockUser._id, courseId: demoCourse._id },
+        {
+          userId: mockUser._id,
+          courseId: demoCourse._id,
+          instituteId: bhilai._id,
+          totalClasses: 24,
+          attendedClasses: 20,
+          lastUpdated: "07 Jan, 2026",
+        },
+        { upsert: true },
+      );
+    }
+
+    console.log("Created demo account: mock@email.com / mock");
+  } else {
+    console.log("Demo account already exists: mock@email.com");
+  }
+
   console.log("Seed complete.");
   await mongoose.disconnect();
 }
