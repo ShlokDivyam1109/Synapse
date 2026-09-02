@@ -34,6 +34,8 @@ router.post("/mental-health", async (req, res) => {
     return res.status(500).json({
       success: false,
       error: "Failed to analyze mental health",
+      // TEMP DEBUG: remove details before shipping this to real users —
+      // it can leak internal info (e.g. parts of the Gemini error message).
       details: error?.message ?? String(error),
     });
   }
