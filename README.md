@@ -4,6 +4,8 @@ Synapse is a full-stack, student-centric campus management web application that 
 
 A **special focus of Synapse is the Medical & Mental Wellness section**, ensuring students have timely access to health services, notices, and emotional well-being support alongside academics.
 
+Deployed on Netlify: https://synapse-campus-administration.netlify.app/
+
 ---
 
 ## 👥 Team Members
