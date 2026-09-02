@@ -30,23 +30,6 @@ export function createServer() {
   const app = express();
 
   app.use(cors({ origin: true, credentials: true }));
-
-  // Every request waits for the (cached, reused-on-warm-containers) DB connection
-  // before reaching any route. Without this, a cold serverless invocation can let
-  // a route's query run before the connection exists — Mongoose then queues
-  // ("buffers") that query and only fails after a 10s timeout instead of
-  // immediately. Failing fast here with a 503 is far more diagnosable.
-  app.use(async (_req, res, next) => {
-    try {
-      await connectDB();
-      next();
-    } catch (err) {
-      console.error("MongoDB connection error:", (err as Error).message);
-      res.status(503).json({ error: "Database unavailable, please try again shortly" });
-    }
-  });
-
-  // Middleware
   app.use(express.json());
 
   // serverless-http can pre-populate req.body as a raw Buffer before Express's
@@ -64,9 +47,27 @@ export function createServer() {
     next();
   });
 
-  app.use(cookieParser());
+  // Mounted before the DB-connect middleware below: this route calls Gemini
+  // only and never touches Mongo, so it shouldn't be blocked by (or count
+  // against the request's time budget for) a slow/cold Atlas connection.
   app.use("/api", mentalHealthRoute);
 
+  // Every request from here down waits for the (cached, reused-on-warm-containers) DB connection
+  // before reaching any route. Without this, a cold serverless invocation can let
+  // a route's query run before the connection exists — Mongoose then queues
+  // ("buffers") that query and only fails after a 10s timeout instead of
+  // immediately. Failing fast here with a 503 is far more diagnosable.
+  app.use(async (_req, res, next) => {
+    try {
+      await connectDB();
+      next();
+    } catch (err) {
+      console.error("MongoDB connection error:", (err as Error).message);
+      res.status(503).json({ error: "Database unavailable, please try again shortly" });
+    }
+  });
+
+  app.use(cookieParser());
   app.use(express.urlencoded({ extended: true }));
 
   // Healthcheck
