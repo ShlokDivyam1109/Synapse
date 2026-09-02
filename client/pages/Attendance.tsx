@@ -1,7 +1,8 @@
-import { CheckCircle, AlertCircle, TrendingUp, Calendar, Clock, Target, BarChart3 } from "lucide-react";
+import { CheckCircle, AlertCircle, TrendingUp, Calendar, Target, BarChart3 } from "lucide-react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-interface AttendanceData {
+interface AttendanceCourse {
   id: string;
   code: string;
   title: string;
@@ -12,39 +13,44 @@ interface AttendanceData {
   attendedClasses: number;
   percentage: number;
   lastUpdated: string;
-  status: "good" | "warning" | "critical";
 }
 
-async function fetchAttendance(): Promise<AttendanceData[]> {
+interface AttendanceSemester {
+  semesterNumber: number;
+  name: string;
+  program: string;
+  courses: AttendanceCourse[];
+}
+
+async function fetchAttendance(): Promise<AttendanceSemester[]> {
   const res = await fetch("/api/attendance", { credentials: "include" });
   if (!res.ok) throw new Error("Failed to load attendance");
   const data = await res.json();
-  return data.attendance.map((a: any) => ({ ...a, id: a._id }));
+  return data.semesters.map((sem: any) => ({
+    ...sem,
+    courses: sem.records.map((r: any) => ({ ...r, id: r._id })),
+  }));
+}
+
+function average(courses: AttendanceCourse[]): number {
+  if (courses.length === 0) return 0;
+  return courses.reduce((total, c) => total + c.percentage, 0) / courses.length;
 }
 
 export default function Attendance() {
-  const { data: attendanceData = [], isLoading, error } = useQuery({
+  const { data: semesters = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["attendance"],
     queryFn: fetchAttendance,
   });
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        Loading your attendance...
-      </div>
-    );
-  }
+  const latestSemesterNumber = semesters.length
+    ? semesters[semesters.length - 1].semesterNumber
+    : null;
+  const [activeSemester, setActiveSemester] = useState<number | null>(null);
+  const effectiveActiveSemester = activeSemester ?? latestSemesterNumber;
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-600">
-        Couldn't load your attendance.
-      </div>
-    );
-  }
-
-
+  const currentSemester = semesters.find((s) => s.semesterNumber === effectiveActiveSemester);
+  const courses = currentSemester?.courses ?? [];
 
   const getStatusColor = (percentage: number) => {
     if (percentage >= 75) return "text-emerald-600";
@@ -82,10 +88,10 @@ export default function Attendance() {
     return <AlertCircle className="w-5 h-5 text-red-600" />;
   };
 
-  const overallAttendance = attendanceData.reduce((total, course) => total + course.percentage, 0) / attendanceData.length;
-  const coursesAbove75 = attendanceData.filter(course => course.percentage >= 75).length;
-  const coursesBelow75 = attendanceData.filter(course => course.percentage < 75).length;
-  const totalCredits = attendanceData.reduce((total, course) => total + course.credits, 0);
+  const overallAttendance = average(courses);
+  const coursesAbove75 = courses.filter((c) => c.percentage >= 75).length;
+  const coursesBelow75 = courses.filter((c) => c.percentage < 75).length;
+  const totalCredits = courses.reduce((total, c) => total + c.credits, 0);
 
   return (
     <>
@@ -106,15 +112,48 @@ export default function Attendance() {
             <p className="text-gray-600 text-lg">Monitor your subject-wise attendance with visual progress indicators and alerts</p>
           </div>
 
-          {/* Divider */}
           <div className="h-px bg-gradient-to-r from-emerald-200 via-green-200 to-lime-200 mb-8"></div>
+
+          {isLoading && (
+            <p className="text-gray-600 text-center py-16">Loading your attendance…</p>
+          )}
+          {isError && (
+            <div className="text-center py-16">
+              <p className="text-red-600 mb-3">Couldn't load your attendance.</p>
+              <button onClick={() => refetch()} className="px-4 py-2 bg-primary text-white rounded-md">
+                Retry
+              </button>
+            </div>
+          )}
+          {!isLoading && !isError && semesters.length === 0 && (
+            <p className="text-gray-600 text-center py-16">No attendance records yet.</p>
+          )}
+
+          {!isLoading && !isError && currentSemester && (
+          <>
+          {/* Semester Tabs */}
+          <div className="flex flex-wrap gap-3 mb-8">
+            {semesters.map((sem) => (
+              <button
+                key={sem.semesterNumber}
+                onClick={() => setActiveSemester(sem.semesterNumber)}
+                className={`px-5 py-3 rounded-xl font-medium transition-all ${
+                  effectiveActiveSemester === sem.semesterNumber
+                    ? "bg-emerald-600 text-white shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {sem.name}
+              </button>
+            ))}
+          </div>
 
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
             <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-2xl border border-emerald-200">
               <div className="flex items-center justify-between mb-4">
                 <Target className="w-8 h-8 text-emerald-600" />
-                <span className="text-sm font-medium text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full">Overall</span>
+                <span className="text-sm font-medium text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full">This Semester</span>
               </div>
               <div className="text-center mb-2">
                 <div className="text-4xl font-bold text-emerald-700 mb-1">{overallAttendance.toFixed(1)}%</div>
@@ -166,16 +205,12 @@ export default function Attendance() {
           <div className="mb-10 p-6 bg-gradient-to-r from-gray-50 to-white rounded-2xl border border-gray-200">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div className="flex-1">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">2025-26-W Semester</h2>
-                <p className="text-gray-600">B.Tech Computer Science and Engineering</p>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">{currentSemester.name} Semester</h2>
+                <p className="text-gray-600">{currentSemester.program}</p>
                 <div className="flex items-center gap-4 mt-4">
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Calendar className="w-4 h-4" />
-                    <span>3 weeks completed</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Clock className="w-4 h-4" />
-                    <span>Last updated: 23 Jan, 2026</span>
+                    <span>{courses.length} course{courses.length !== 1 ? "s" : ""} tracked</span>
                   </div>
                 </div>
               </div>
@@ -190,17 +225,15 @@ export default function Attendance() {
             </div>
           </div>
 
-          {/* Divider */}
           <div className="h-px bg-gradient-to-r from-emerald-200 via-green-200 to-lime-200 mb-10"></div>
 
           {/* Attendance Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {attendanceData.map((course) => (
+            {courses.map((course) => (
               <div 
                 key={course.id} 
                 className={`group border rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 ${getStatusBgColor(course.percentage)} ${getStatusBorderColor(course.percentage)}`}
               >
-                {/* Course Header */}
                 <div className="flex items-start justify-between mb-6">
                   <div>
                     <h3 className="font-bold text-xl text-gray-900 group-hover:text-emerald-600 transition-colors">
@@ -220,15 +253,12 @@ export default function Attendance() {
                   </div>
                   <div className="flex items-center gap-2">
                     {getStatusIcon(course.percentage)}
-                    <span
-  className={`text-sm font-semibold ${getStatusColor(course.percentage)} whitespace-nowrap`}
->
+                    <span className={`text-sm font-semibold ${getStatusColor(course.percentage)} whitespace-nowrap`}>
                       {getStatusText(course.percentage)}
                     </span>
                   </div>
                 </div>
 
-                {/* Circular Progress */}
                 <div className="relative mb-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
@@ -243,10 +273,8 @@ export default function Attendance() {
                     </div>
                   </div>
                   
-                  {/* Circular Progress Bar */}
                   <div className="relative w-48 h-48 mx-auto">
                     <svg className="w-full h-full transform -rotate-90">
-                      {/* Background circle */}
                       <circle
                         cx="96"
                         cy="96"
@@ -256,7 +284,6 @@ export default function Attendance() {
                         fill="transparent"
                         className="text-gray-200"
                       />
-                      {/* Progress circle */}
                       <circle
                         cx="96"
                         cy="96"
@@ -283,27 +310,17 @@ export default function Attendance() {
                   </div>
                 </div>
 
-                {/* Faculty and Details */}
                 <div className="space-y-3 pt-6 border-t border-gray-200">
                   <div>
                     <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Faculty</p>
                     <p className="font-medium text-gray-900 text-sm">{course.faculty}</p>
                   </div>
-                  <div className="flex justify-between">
-                    <div>
-                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Last Updated</p>
-                      <p className="font-medium text-gray-900 text-sm">{course.lastUpdated}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Classes/week</p>
-                      <p className="font-medium text-gray-900 text-sm text-center">
-                        {Math.round(course.totalClasses / 3)}
-                      </p>
-                    </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Last Updated</p>
+                    <p className="font-medium text-gray-900 text-sm">{course.lastUpdated || "—"}</p>
                   </div>
                 </div>
 
-                {/* Attendance Status Bar */}
                 <div className="mt-6">
                   <div className="flex justify-between text-xs text-gray-600 mb-2">
                     <span>0%</span>
@@ -315,9 +332,6 @@ export default function Attendance() {
                       className={`h-2 rounded-full ${course.percentage >= 75 ? 'bg-emerald-500' : course.percentage >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
                       style={{ width: `${course.percentage}%` }}
                     ></div>
-                    <div className="relative h-2 -mt-2">
-                      <div className="absolute left-3/4 transform -translate-x-1/2 w-0.5 h-2 bg-gray-400"></div>
-                    </div>
                   </div>
                   <div className="flex justify-between text-xs text-gray-500 mt-1">
                     <span>Poor</span>
@@ -331,7 +345,7 @@ export default function Attendance() {
             ))}
           </div>
 
-          {/* Legend and Info */}
+          {/* Legend */}
           <div className="bg-gradient-to-r from-gray-50 to-white rounded-2xl border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-emerald-600" />
@@ -363,12 +377,12 @@ export default function Attendance() {
             
             <div className="mt-6 pt-6 border-t border-gray-200">
               <p className="text-sm text-gray-600">
-                <strong>Note:</strong> 75% attendance is mandatory for each course. 
-                Higher credit courses ({">"}3 credits) have more classes per week. 
-                Data updated weekly based on faculty reports.
+                <strong>Note:</strong> 75% attendance is mandatory for each course.
               </p>
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
     </>

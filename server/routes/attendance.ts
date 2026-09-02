@@ -16,25 +16,44 @@ router.get("/", async (req, res) => {
   const courses = await Course.find({ _id: { $in: courseIds } });
   const courseMap = new Map(courses.map((c) => [c._id.toString(), c]));
 
-  const attendance = records.map((r) => {
+  const bySemester = new Map<
+    number,
+    { semesterNumber: number; name: string; program: string; records: any[] }
+  >();
+
+  for (const r of records) {
     const course = courseMap.get(r.courseId.toString());
+    if (!course) continue; // orphaned record (course deleted) — skip rather than crash
+
     const percentage = r.totalClasses > 0 ? (r.attendedClasses / r.totalClasses) * 100 : 0;
-    return {
+
+    if (!bySemester.has(course.semesterNumber)) {
+      bySemester.set(course.semesterNumber, {
+        semesterNumber: course.semesterNumber,
+        name: course.semesterName,
+        program: course.program,
+        records: [],
+      });
+    }
+    bySemester.get(course.semesterNumber)!.records.push({
       _id: r._id,
-      code: course?.code ?? "",
-      title: course?.title ?? "",
-      credits: course?.credits ?? 0,
-      type: course?.type ?? "",
-      faculty: course?.faculty ?? "",
+      code: course.code,
+      title: course.title,
+      credits: course.credits,
+      type: course.type,
+      faculty: course.faculty,
       totalClasses: r.totalClasses,
       attendedClasses: r.attendedClasses,
       percentage: Math.round(percentage * 10) / 10,
       lastUpdated: r.lastUpdated,
-      status: percentage >= 75 ? "good" : percentage >= 50 ? "warning" : "critical",
-    };
-  });
+    });
+  }
 
-  res.json({ attendance });
+  const semesters = Array.from(bySemester.values()).sort(
+    (a, b) => a.semesterNumber - b.semesterNumber,
+  );
+
+  res.json({ semesters });
 });
 
 // PUT /api/attendance — admin only, upserts one student's record for one course.
