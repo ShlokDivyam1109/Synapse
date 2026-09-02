@@ -5,17 +5,27 @@ if (!GEMINI_API_KEY) {
 }
 
 export async function analyzeMentalHealth(userText: string) {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `
+  // Netlify/Lambda kills the whole function at ~30s regardless of what's
+  // in flight, which produces an opaque "Sandbox.Timedout" with no useful
+  // message. Time this call out well before that so a slow Gemini response
+  // fails fast with a real error instead of taking the whole request down.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `
 Return ONLY valid JSON without any backticks or markdown.
 
 {
@@ -27,13 +37,26 @@ Return ONLY valid JSON without any backticks or markdown.
 User responses:
 ${userText}
                 `,
-              },
-            ],
+                },
+              ],
+            },
+          ],
+          // This task just needs a JSON verdict, not multi-step reasoning —
+          // disabling "thinking" cuts latency (and thinking-token cost).
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: 0 },
           },
-        ],
-      }),
+        }),
+      }
+    );
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      throw new Error("Gemini request timed out after 20s");
     }
-  );
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const data = await res.json();
 
