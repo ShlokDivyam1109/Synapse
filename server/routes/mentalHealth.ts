@@ -34,6 +34,7 @@ router.post("/mental-health", async (req, res) => {
     return res.status(500).json({
       success: false,
       error: "Failed to analyze mental health",
+      details: error?.message ?? String(error),
     });
   }
 });
