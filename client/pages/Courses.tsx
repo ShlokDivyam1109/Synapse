@@ -41,14 +41,17 @@ export default function Courses() {
 
   const semesters: Semester[] = data?.semesters ?? [];
 
-  const filteredSemesters = semesters.map(semester => ({
-    ...semester,
-    courses: semester.courses.filter(course =>
-      course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.faculty.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  })).filter(semester => semester.courses.length > 0);
+  const filteredSemesters = semesters
+    .map(semester => ({
+      ...semester,
+      courses: semester.courses.filter(course =>
+        course.enrolled &&
+        (course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          course.faculty.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    }))
+    .filter(semester => semester.courses.length > 0);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -100,7 +103,7 @@ export default function Courses() {
                 </h1>
               </div>
             </div>
-            <p className="text-gray-600 text-lg">View all courses across semesters</p>
+            <p className="text-gray-600 text-lg">View the courses you're enrolled in, by semester</p>
           </div>
 
           {/* Divider */}
@@ -155,7 +158,7 @@ export default function Courses() {
             )}
             {!isLoading && !isError && filteredSemesters.length === 0 && (
               <p className="text-gray-600 text-center py-10">
-                {searchQuery ? "No courses match your search." : "No courses found."}
+                {searchQuery ? "No enrolled courses match your search." : "You aren't enrolled in any courses yet."}
               </p>
             )}
             {filteredSemesters.map((semester, semesterIndex) => (
