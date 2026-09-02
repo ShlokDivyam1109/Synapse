@@ -41,10 +41,14 @@ ${userText}
               ],
             },
           ],
-          // This task just needs a JSON verdict, not multi-step reasoning —
-          // disabling "thinking" cuts latency (and thinking-token cost).
+          // This task just needs a JSON verdict, not deep reasoning.
+          // gemini-3.6-flash is a Gemini 3 model: it uses thinkingLevel
+          // (not the Gemini 2.5-era thinkingBudget, which this model
+          // rejects with "Request contains an invalid argument"), and
+          // Gemini 3 Flash can't fully disable thinking — "low" is the
+          // fastest/cheapest setting it supports.
           generationConfig: {
-            thinkingConfig: { thinkingBudget: 0 },
+            thinkingConfig: { thinkingLevel: "low" },
           },
         }),
       }
