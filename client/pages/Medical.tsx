@@ -60,7 +60,15 @@ async function evaluateMentalHealth(
   });
 
   if (!response.ok) {
-    throw new Error("Mental health evaluation failed");
+    let message = "Mental health evaluation failed";
+    try {
+      const body = await response.json();
+      if (body?.details) message = body.details;
+      else if (body?.error) message = body.error;
+    } catch {
+      // response wasn't JSON (e.g. a raw Lambda timeout page) — keep the default message
+    }
+    throw new Error(message);
   }
 
   return response.json();
@@ -1085,8 +1093,8 @@ function MentalWellnessTab() {
       });
 
       setShowResults(true);
-    } catch (err) {
-      alert("Failed to evaluate mental health");
+    } catch (err: any) {
+      alert(err?.message || "Failed to evaluate mental health");
     } finally {
       setLoading(false);
     }
