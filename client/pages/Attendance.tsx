@@ -16,7 +16,6 @@ interface AttendanceCourse {
 }
 
 interface AttendanceSemester {
-  semesterNumber: number;
   name: string;
   program: string;
   courses: AttendanceCourse[];
@@ -43,13 +42,13 @@ export default function Attendance() {
     queryFn: fetchAttendance,
   });
 
-  const latestSemesterNumber = semesters.length
-    ? semesters[semesters.length - 1].semesterNumber
+  const latestSemesterName = semesters.length
+    ? semesters[semesters.length - 1].name
     : null;
-  const [activeSemester, setActiveSemester] = useState<number | null>(null);
-  const effectiveActiveSemester = activeSemester ?? latestSemesterNumber;
+  const [activeSemester, setActiveSemester] = useState<string | null>(null);
+  const effectiveActiveSemester = activeSemester ?? latestSemesterName;
 
-  const currentSemester = semesters.find((s) => s.semesterNumber === effectiveActiveSemester);
+  const currentSemester = semesters.find((s) => s.name === effectiveActiveSemester);
   const courses = currentSemester?.courses ?? [];
 
   const getStatusColor = (percentage: number) => {
@@ -135,10 +134,10 @@ export default function Attendance() {
           <div className="flex flex-wrap gap-3 mb-8">
             {semesters.map((sem) => (
               <button
-                key={sem.semesterNumber}
-                onClick={() => setActiveSemester(sem.semesterNumber)}
+                key={sem.name}
+                onClick={() => setActiveSemester(sem.name)}
                 className={`px-5 py-3 rounded-xl font-medium transition-all ${
-                  effectiveActiveSemester === sem.semesterNumber
+                  effectiveActiveSemester === sem.name
                     ? "bg-emerald-600 text-white shadow-md"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}

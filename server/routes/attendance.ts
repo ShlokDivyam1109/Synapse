@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { Attendance } from "../models/Attendance";
 import { Course } from "../models/Course";
+import { semesterSortKey } from "../lib/semester";
 
 const router = Router();
 
@@ -16,10 +17,11 @@ router.get("/", async (req, res) => {
   const courses = await Course.find({ _id: { $in: courseIds } });
   const courseMap = new Map(courses.map((c) => [c._id.toString(), c]));
 
-  const bySemester = new Map<
-    number,
-    { semesterNumber: number; name: string; program: string; records: any[] }
-  >();
+  // Grouped by semesterName, same as courses.ts and grades.ts — that field has
+  // drifted out of sync across seed scripts (the same semester assigned different
+  // numbers in different places), which used to split one real semester's
+  // attendance into multiple tabs, or merge different semesters into one.
+  const bySemester = new Map<string, { name: string; program: string; records: any[] }>();
 
   for (const r of records) {
     const course = courseMap.get(r.courseId.toString());
@@ -27,15 +29,14 @@ router.get("/", async (req, res) => {
 
     const percentage = r.totalClasses > 0 ? (r.attendedClasses / r.totalClasses) * 100 : 0;
 
-    if (!bySemester.has(course.semesterNumber)) {
-      bySemester.set(course.semesterNumber, {
-        semesterNumber: course.semesterNumber,
+    if (!bySemester.has(course.semesterName)) {
+      bySemester.set(course.semesterName, {
         name: course.semesterName,
         program: course.program,
         records: [],
       });
     }
-    bySemester.get(course.semesterNumber)!.records.push({
+    bySemester.get(course.semesterName)!.records.push({
       _id: r._id,
       code: course.code,
       title: course.title,
@@ -49,8 +50,10 @@ router.get("/", async (req, res) => {
     });
   }
 
+  // Oldest semester first, ordered correctly within an academic year (M before W),
+  // regardless of any stale semesterNumber value on the underlying course documents.
   const semesters = Array.from(bySemester.values()).sort(
-    (a, b) => a.semesterNumber - b.semesterNumber,
+    (a, b) => semesterSortKey(a.name) - semesterSortKey(b.name),
   );
 
   res.json({ semesters });
