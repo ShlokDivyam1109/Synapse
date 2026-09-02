@@ -20,10 +20,13 @@ A **special focus of Synapse is the Medical & Mental Wellness section**, ensurin
 - Email/password login with JWT sessions (httpOnly cookie)
 - Every user belongs to an institute; nearly all data is scoped to that institute, so students at different institutes never see each other's doctors, notices, courses, etc.
 - Student and admin roles
+- Profile page displays the logged-in user's institute name alongside their department
 - Accounts are provisioned directly (via seed scripts or database entry) rather than public self-signup — this app assumes the institute's user data already exists
 
 ### 📚 Academic Management
 - Institute-wide course catalog, each course with a fixed weekly schedule slot (day/time/room)
+- Courses are grouped by semester (e.g. `2025-26-M`) across all programs — a semester's course list isn't split per-program
+- Semester order (Monsoon before Winter within an academic year, years in order) is always derived from the semester name itself, not a manually-entered number, so it can't drift out of order between different data-entry passes
 - Students self-enroll/unenroll in courses from the current semester only (past semesters are read-only)
 - **Timetable is fully derived from your enrollments** — no separately maintained schedule to fall out of sync; enroll or unenroll on the Courses page and your Timetable updates immediately
 - Personal grade transcript per student (SGPA/CGPA calculated from real grade data, not hardcoded)
@@ -33,6 +36,7 @@ A **special focus of Synapse is the Medical & Mental Wellness section**, ensurin
 - Institute-scoped doctor directory with real appointment booking
 - Institute-scoped hospitals and medical stores directory
 - AI-powered mental wellness self-assessment (Google Gemini API, called through a secured serverless function — the API key never reaches the browser)
+- Distinguishes and handles Gemini's own failure modes gracefully: content-safety blocks (returns a supportive message pointing to real support instead of a raw error) and rate-limit/quota errors are surfaced distinctly from genuine failures, both in the API response and in server logs
 - Google Meet integration for starting a video consultation session
 
 ### 🔔 Notices & Announcements
@@ -144,9 +148,11 @@ Additional, optional seed scripts fill in more sample data for specific features
 
     npx tsx server/scripts/seedAcademicEvents.ts
     npx tsx server/scripts/seedCoursesGrades.ts
+    npx tsx server/scripts/seedNotices.ts
+    npx tsx server/scripts/seedMockUserTasks.ts
     npx tsx server/scripts/updateMyProfile.ts
 
-`updateMyProfile.ts` fills in profile details (phone, address, guardian info, etc.) for one specific account — open the file and edit the placeholder values with real data before running it.
+`seedNotices.ts` seeds the original 30 sample notices for the IIT Bhilai institute specifically. `seedMockUserTasks.ts` seeds 10 sample tasks for a specific existing user (edit the target email in the script before running it — it looks up an existing account rather than creating one). `updateMyProfile.ts` fills in profile details (phone, address, guardian info, etc.) for one specific account — open the file and edit the placeholder values with real data before running it.
 
 ---
 
@@ -170,6 +176,11 @@ This project is set up to deploy on **Netlify**:
 - `netlify.toml` redirects all `/api/*` requests to that function
 - Set `MONGODB_URI`, `JWT_SECRET`, and `GEMINI_API_KEY` as environment variables in your Netlify site settings (not just locally) before deploying
 - MongoDB Atlas Network Access needs to allow connections from anywhere (`0.0.0.0/0`), since Netlify Functions don't have a fixed outbound IP
+
+### ⚠️ Known Netlify/serverless gotchas (already handled, documented for future maintainers)
+
+- **`packageManager` must stay unset / npm-based.** The project previously used `pnpm`; if a `pnpm-lock.yaml` and a `packageManager: pnpm@...` field in `package.json` both reappear without the other, Netlify's build will try to install with pnpm and fail to bundle `mongoose` correctly (`Cannot find module 'mongoose'` at runtime). Stick with `package-lock.json`/npm unless you deliberately migrate back and verify the deploy end-to-end.
+- **Netlify's function bundler can hand Express a pre-parsed request body as a raw `Buffer`** instead of letting `express.json()` parse it, which silently breaks any route reading `req.body` (e.g. login would fail with a generic "Invalid email or password" even with correct credentials). `server/index.ts` includes a middleware that normalizes this — don't remove it when touching the middleware stack.
 
 ---
 
