@@ -44,13 +44,17 @@ router.get("/", async (req, res) => {
   const myEnrollments = await Enrollment.find({ userId: req.user!.userId });
   const enrolledCourseIds = new Set(myEnrollments.map((e) => e.courseId.toString()));
 
-  const bySemester = new Map<string, { name: string; program: string; courses: any[] }>();
+  const bySemester = new Map<
+    string,
+    { name: string; programs: Set<string>; courses: any[] }
+  >();
   for (const c of courses) {
-    const key = `${c.semesterName}::${c.program}`;
-    if (!bySemester.has(key)) {
-      bySemester.set(key, { name: c.semesterName, program: c.program, courses: [] });
+    if (!bySemester.has(c.semesterName)) {
+      bySemester.set(c.semesterName, { name: c.semesterName, programs: new Set(), courses: [] });
     }
-    bySemester.get(key)!.courses.push({
+    const group = bySemester.get(c.semesterName)!;
+    group.programs.add(c.program);
+    group.courses.push({
       id: c._id,
       code: c.code,
       title: c.title,
@@ -67,9 +71,15 @@ router.get("/", async (req, res) => {
 
   // Newest semester first, ordered correctly within an academic year (M before W)
   // regardless of any stale semesterNumber value on the underlying documents.
-  const semesters = Array.from(bySemester.values()).sort(
-    (a, b) => semesterSortKey(b.name) - semesterSortKey(a.name),
-  );
+  // `program` is now the distinct set of programs present in that semester
+  // (joined for display), since courses are no longer split by program.
+  const semesters = Array.from(bySemester.values())
+    .map((g) => ({
+      name: g.name,
+      program: Array.from(g.programs).sort().join(", "),
+      courses: g.courses,
+    }))
+    .sort((a, b) => semesterSortKey(b.name) - semesterSortKey(a.name));
 
   res.json({ semesters });
 });
